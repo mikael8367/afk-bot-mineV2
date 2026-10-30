@@ -6,7 +6,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <application
-        android:extractNativeLibs="true"
         android:allowBackup="false"
         android:label="AFK Bot Mine V2"
         android:usesCleartextTraffic="false"
