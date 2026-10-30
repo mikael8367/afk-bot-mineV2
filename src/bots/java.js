@@ -38,7 +38,8 @@ export function createJavaBot(config,cb={},initialOptions={}) {
           const items=bot.inventory.items();
           const best=items.filter(item=>item.name?.endsWith(part.suffix)).sort((a,b)=>armorRank(b.name)-armorRank(a.name))[0];
           if(!best) continue;
-          const slot=bot.getEquipmentDestSlot(part.destination);\n          const current=bot.inventory.slots?.[slot]||null;
+          const slot=bot.getEquipmentDestSlot(part.destination);
+          const current=bot.inventory.slots?.[slot]||null;
           if(current&&armorRank(current.name)>=armorRank(best.name)) continue;
           if(!current||armorRank(best.name)>armorRank(current.name)) {
             await bot.equip(best,part.destination);
@@ -47,11 +48,14 @@ export function createJavaBot(config,cb={},initialOptions={}) {
         }
       }
       if(options.autoEquipShield) {
-        const offhandSlot=bot.getEquipmentDestSlot("off-hand");\n        const offhand=bot.inventory.slots?.[offhandSlot]||null;
+        const offhandSlot=bot.getEquipmentDestSlot("off-hand");
         const shield=bot.inventory.items().find(item=>item.name==="shield");
-        if(!offhand&&shield) {
-          await bot.equip(shield,"off-hand");
-          log("info","Escudo equipado na mão secundária.");
+        if(Number.isInteger(offhandSlot)&&shield) {
+          const offhand=bot.inventory.slots?.[offhandSlot]||null;
+          if(!offhand) {
+            await bot.equip(shield,"off-hand");
+            log("info","Escudo equipado na mão secundária.");
+          }
         }
       }
     } catch(error) {
