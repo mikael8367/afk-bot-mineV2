@@ -23,8 +23,7 @@ import java.net.URL
 import java.util.concurrent.Executors
 
 class MainActivity : Activity() {
-    private val host = "afk-bot-mine-v2.onrender.com"
-    private val panelUrl = "https://afk-bot-mine-v2.onrender.com/"
+    private val panelUrl = "file:///android_asset/panel/index.html"
     private val bridgeExecutor = Executors.newCachedThreadPool()
     @Volatile private var trustedPanelLoaded = false
     private lateinit var root: LinearLayout
@@ -89,12 +88,13 @@ class MainActivity : Activity() {
         browser.settings.databaseEnabled = true
         browser.settings.loadsImagesAutomatically = true
         browser.settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-        browser.settings.allowFileAccess = false
+        // Only the packaged, read-only UI is loaded as a file URL. File-to-file access remains disabled.
+        browser.settings.allowFileAccess = true
+        browser.settings.allowFileAccessFromFileURLs = false
+        browser.settings.allowUniversalAccessFromFileURLs = false
         browser.settings.allowContentAccess = false
         browser.settings.javaScriptCanOpenWindowsAutomatically = false
         browser.settings.setSupportMultipleWindows(false)
-        CookieManager.getInstance().setAcceptCookie(true)
-        CookieManager.getInstance().setAcceptThirdPartyCookies(browser, false)
         browser.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 return !isTrustedUrl(request.url.toString())
@@ -109,10 +109,9 @@ class MainActivity : Activity() {
             override fun onPageFinished(view: WebView, url: String) {
                 progress.visibility = View.GONE
                 trustedPanelLoaded = isTrustedUrl(url)
-                CookieManager.getInstance().flush()
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                if (request.isForMainFrame) Toast.makeText(this@MainActivity, "Falha de rede. Verifique a internet e tente novamente.", Toast.LENGTH_LONG).show()
+                if (request.isForMainFrame) Toast.makeText(this@MainActivity, "Não foi possível abrir a interface incluída no aplicativo.", Toast.LENGTH_LONG).show()
             }
         }
         browser.webChromeClient = object : WebChromeClient() {
@@ -127,16 +126,62 @@ class MainActivity : Activity() {
         browser.loadUrl(panelUrl)
     }
 
-    private fun isTrustedUrl(value: String): Boolean = try {
-        val uri = Uri.parse(value)
-        uri.scheme == "https" && uri.host == host
-    } catch (_: Exception) { false }
+    private fun isTrustedUrl(value: String): Boolean {
+        return value == panelUrl || value.startsWith("file:///android_asset/panel/")
+    }
 
     private fun runtimePreferences() = getSharedPreferences("afk_bot_runtime_mode", MODE_PRIVATE)
 
     private fun startRuntimeService() {
         val intent = Intent(this, BotRuntimeService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
+    }
+
+    private fun deliverApiResponse(callbackId: String, code: Int, responseBody: String) {
+        val script = "window.__resolveLocalApi && window.__resolveLocalApi(" +
+            JSONObject.quote(callbackId) + ",$code," + JSONObject.quote(responseBody) + ")"
+        runOnUiThread {
+            if (::browser.isInitialized && !isFinishing) browser.evaluateJavascript(script, null)
+        }
+    }
+
+    private fun performApiRequest(path: String, method: String, body: String, callbackId: String, local: Boolean) {
+        if (!trustedPanelLoaded || !ALLOWED_API_PATHS.contains(path) ||
+            (method != "GET" && method != "POST") ||
+            callbackId.length !in 1..64 ||
+            !callbackId.matches(Regex("^[A-Za-z0-9_-]+$")) ||
+            body.length > 10000
+        ) return
+
+        val token = if (local) BotRuntimeService.getOrCreateToken(this) else null
+        bridgeExecutor.execute {
+            var code = 503
+            var responseBody = """{"error":"Serviço indisponível."}"""
+            var connection: HttpURLConnection? = null
+            try {
+                val base = if (local) "http://127.0.0.1:${BotRuntimeService.LOCAL_PORT}" else REMOTE_API_BASE
+                connection = (URL("$base$path").openConnection() as HttpURLConnection).apply {
+                    requestMethod = method
+                    connectTimeout = if (local) 3500 else 10000
+                    readTimeout = if (local) 5000 else 15000
+                    setRequestProperty("Accept", "application/json")
+                    if (token != null) setRequestProperty("X-Local-Token", token)
+                    if (method == "POST") {
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/json")
+                    }
+                }
+                if (method == "POST") connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+                code = connection.responseCode
+                val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                responseBody = stream?.bufferedReader()?.use { it.readText() } ?: "{}"
+            } catch (error: Exception) {
+                responseBody = JSONObject().put("error", error.message ?: "Não foi possível acessar o serviço.").toString()
+            } finally {
+                connection?.disconnect()
+            }
+            deliverApiResponse(callbackId, code, responseBody)
+        }
     }
 
     private inner class BotBridge {
@@ -174,45 +219,12 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun requestLocalApi(path: String, method: String, body: String, callbackId: String) {
-            if (!trustedPanelLoaded || !ALLOWED_API_PATHS.contains(path) ||
-                (method != "GET" && method != "POST") ||
-                callbackId.length !in 1..64 ||
-                !callbackId.matches(Regex("^[A-Za-z0-9_-]+$")) ||
-                body.length > 10000
-            ) return
+            performApiRequest(path, method, body, callbackId, true)
+        }
 
-            val token = BotRuntimeService.getOrCreateToken(this@MainActivity)
-            bridgeExecutor.execute {
-                var code = 503
-                var responseBody = """{"error":"Motor local indisponível."}"""
-                var connection: HttpURLConnection? = null
-                try {
-                    connection = (URL("http://127.0.0.1:${BotRuntimeService.LOCAL_PORT}$path").openConnection() as HttpURLConnection).apply {
-                        requestMethod = method
-                        connectTimeout = 3500
-                        readTimeout = 5000
-                        setRequestProperty("Accept", "application/json")
-                        setRequestProperty("X-Local-Token", token)
-                        if (method == "POST") {
-                            doOutput = true
-                            setRequestProperty("Content-Type", "application/json")
-                        }
-                    }
-                    if (method == "POST") connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
-                    code = connection.responseCode
-                    val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-                    responseBody = stream?.bufferedReader()?.use { it.readText() } ?: "{}"
-                } catch (error: Exception) {
-                    responseBody = JSONObject().put("error", error.message ?: "Não foi possível acessar o motor local.").toString()
-                } finally {
-                    connection?.disconnect()
-                }
-                val script = "window.__resolveLocalApi && window.__resolveLocalApi(" +
-                    JSONObject.quote(callbackId) + ",$code," + JSONObject.quote(responseBody) + ")"
-                runOnUiThread {
-                    if (::browser.isInitialized && !isFinishing) browser.evaluateJavascript(script, null)
-                }
-            }
+        @JavascriptInterface
+        fun requestRenderApi(path: String, method: String, body: String, callbackId: String) {
+            performApiRequest(path, method, body, callbackId, false)
         }
     }
 
@@ -243,6 +255,7 @@ class MainActivity : Activity() {
         private const val KEY_MODE = "execution_mode"
         private const val MODE_RENDER = "render"
         private const val MODE_DEVICE = "device"
+        private const val REMOTE_API_BASE = "https://afk-bot-mine-v2.onrender.com"
         private val ALLOWED_API_PATHS = setOf(
             "/health", "/api/versions", "/api/status", "/api/logs", "/api/connect",
             "/api/options", "/api/control", "/api/chat", "/api/follow", "/api/disconnect"
