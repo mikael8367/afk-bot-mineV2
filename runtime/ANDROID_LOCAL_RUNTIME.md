@@ -18,14 +18,14 @@ The current staging script uses the pinned Node.js ARM64 release from Towartz's 
 
 ## Current state
 
-`scripts/prepare-android-runtime.sh` downloads and verifies the pinned runtime archive, stages the executable under Android's ARM64 native-library directory, and stages the backend/panel assets. It requires a committed `package-lock.json` before it can install production dependencies reproducibly.
+`scripts/prepare-android-runtime.sh` downloads and verifies the pinned runtime archive, stages the executable under Android's ARM64 native-library directory, and stages the backend/panel assets. It currently installs production JavaScript dependencies during staging with optional native addons excluded. Because the repository does not yet contain a lockfile, dependency versions are not yet reproducible; a reviewed `package-lock.json` is required before production packaging.
 
 This is only the runtime-staging foundation. It does **not** yet provide the Android foreground service, local API lifecycle, WebView mode switching, or a tested APK. Do not expose a Device mode selector until those pieces are implemented and verified.
 
 ## Verification still required
 
 1. Generate and review a lockfile using Node.js 24 or newer.
-2. Run the staging script and verify the executable with `file`, `readelf`, and `node --version`.
+2. Add and review a lockfile, then run the staging script and verify the executable with `file` and `readelf`. (The Android ELF cannot be executed on the Linux CI host; `node --version` must be tested on Android.)
 3. Verify the Node executable starts on Android API 31 / ARM64.
 4. Start the backend on loopback and exercise health, versions, connect/disconnect, logs, chat, and reconnect APIs.
 5. Confirm Bedrock 1.26.60 and Java bot dependencies work without unsupported native addons.
