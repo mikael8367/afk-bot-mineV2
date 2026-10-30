@@ -4,6 +4,7 @@ import {fileURLToPath} from "node:url";
 import {BotManager} from "./core/bot-manager.js";
 import {parseBoolean} from "./core/validation.js";
 import {getSupportedVersions} from "./core/versions.js";
+import {isLocalApiTokenValid} from "./core/local-api-auth.js";
 
 const app=express(),dir=path.dirname(fileURLToPath(import.meta.url)),port=Number(process.env.PORT||3000),host=process.env.HOST||"0.0.0.0";
 const manager=new BotManager({autoReconnect:parseBoolean(process.env.AUTO_RECONNECT,true),reconnectDelay:Math.max(3000,Number(process.env.RECONNECT_DELAY_MS)||10000)});
@@ -11,6 +12,15 @@ const manager=new BotManager({autoReconnect:parseBoolean(process.env.AUTO_RECONN
 app.disable("x-powered-by");
 app.set("trust proxy",1);
 app.use(express.json({limit:"10kb"}));
+
+const localApiToken=process.env.LOCAL_API_TOKEN||"";
+app.use((req,res,next)=>{
+  if(!localApiToken||!(req.path==="/health"||req.path.startsWith("/api/"))) return next();
+  if(!isLocalApiTokenValid(localApiToken,req.get("x-local-token"))) {
+    return res.status(401).json({error:"Token local inválido ou ausente."});
+  }
+  next();
+});
 
 // A API é pública e não exige token. Escritas recebem limite básico por IP.
 const writeWindowMs=60_000,writeLimit=30,writeBuckets=new Map();
