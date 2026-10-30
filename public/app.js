@@ -7,6 +7,7 @@ const OPTION_IDS={
   autoEquipShield:"#opt-shield"
 };
 const heldControls=new Set();
+let controlHeartbeat=null;
 
 function tab(name) {
   document.querySelectorAll(".page").forEach(page=>page.classList.toggle("active",page.id==="page-"+name));
@@ -106,6 +107,7 @@ function pressControl(button,event) {
   button.classList.add("pressed");
   try { button.setPointerCapture?.(event.pointerId); } catch {}
   void sendControl(direction,true);
+  if(!controlHeartbeat) controlHeartbeat=setInterval(()=>heldControls.forEach(name=>void sendControl(name,true)),1200);
 }
 function releaseControl(button) {
   const direction=button.dataset.control;
@@ -113,6 +115,7 @@ function releaseControl(button) {
   heldControls.delete(direction);
   button.classList.remove("pressed");
   void sendControl(direction,false);
+  if(heldControls.size===0&&controlHeartbeat){clearInterval(controlHeartbeat);controlHeartbeat=null;}
 }
 function releaseAllControls() {
   document.querySelectorAll("[data-control]").forEach(button=>releaseControl(button));
