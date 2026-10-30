@@ -38,8 +38,11 @@ class MainActivity : Activity() {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 26061)
         }
         if (runtimePreferences().getString(KEY_MODE, MODE_RENDER) == MODE_DEVICE) {
+            stopService(Intent(this, BotMonitorService::class.java))
             BotRuntimeService.getOrCreateToken(this)
             startRuntimeService()
+        } else {
+            stopService(Intent(this, BotRuntimeService::class.java))
         }
         showPanel()
     }
