@@ -19,7 +19,7 @@ app.get("/health",(_q,r)=>r.json({ok:true,service:"afk-bot-mine-v2"}));
 app.use("/api",(q,r,next)=>{
   if(!token||token==="replace-with-a-long-random-secret")return r.status(503).json({error:"Configure ADMIN_TOKEN nas variáveis de ambiente."});
   const cookie=(q.headers.cookie||"").split(";").map(x=>x.trim()).find(x=>x.startsWith("afk_session="))?.slice("afk_session=".length)||"";
-  const sent=q.get("authorization")?.replace(/^Bearer\\s+/i,"")||"";
+  const sent=q.get("authorization")?.replace(/^Bearer\s+/i,"")||"";
   if(!safeEqual(cookie,token)&&!safeEqual(sent,token))return r.status(401).json({error:"Acesso não autorizado. Abra seu link privado de acesso."});
   next();
 });
