@@ -10,7 +10,7 @@ const BEDROCK_VERSIONS=[
   "1.26.0","1.26.10","1.26.20","1.26.30","1.26.40","1.26.45","1.26.51"
 ];
 
-const JAVA_VERSIONS=[...new Set(minecraftProtocol.supportedVersions||[])].filter(v=>typeof v==="string").sort((a,b)=>{
+const JAVA_VERSIONS=[...new Set(minecraftProtocol.supportedVersions||[])].filter(v=>typeof v==="string"&&(()=>{const parts=v.split(".").map(Number);return parts[0]>1||(parts[0]===1&&(parts[1]||0)>=8);})()).sort((a,b)=>{
   const pa=a.split(/[.-]/).map(Number),pb=b.split(/[.-]/).map(Number);
   for(let i=0;i<Math.max(pa.length,pb.length);i++){const d=(pa[i]||0)-(pb[i]||0);if(d)return d;}
   return a.localeCompare(b);
