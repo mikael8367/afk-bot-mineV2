@@ -50,3 +50,28 @@ nav button.selected svg{transform:translateY(-2px);filter:drop-shadow(0 0 5px #6
 @media(min-width:650px){header{padding-left:max(22px,calc((100vw - 680px)/2));padding-right:max(22px,calc((100vw - 680px)/2))}main{padding-top:42px}nav{left:50%;right:auto;transform:translateX(-50%);width:min(100% - 32px,520px);border:1px solid #34513b;border-bottom:0;border-radius:20px 20px 0 0}}
 @media(max-width:380px){main{width:calc(100% - 24px)}header{padding:0 13px}.hero-card{padding:19px}.two{gap:8px}form{padding:15px}.action-row>*{flex:1}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+
+.feature-section{margin-top:27px}
+.options-card,.movement-card,.chat-card{display:grid;gap:12px;margin-top:12px;padding:17px;border:1px solid var(--line);border-radius:19px;background:linear-gradient(145deg,#142219,#0b150f);box-shadow:var(--shadow)}
+.option-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #263a2c}
+.option-row:last-of-type{border-bottom:0}
+.option-row span{display:grid;gap:4px}
+.option-row b{font-size:12px;color:var(--text)}
+.option-row small{font-size:10px;color:var(--muted);font-weight:500;line-height:1.5}
+.option-row input[type=checkbox]{appearance:none;-webkit-appearance:none;width:43px;min-width:43px;height:25px;min-height:25px;border:1px solid #47624c;border-radius:99px;background:#1b2b20;padding:0;position:relative;cursor:pointer;transition:background .2s,border-color .2s}
+.option-row input[type=checkbox]:before{content:"";position:absolute;width:17px;height:17px;left:3px;top:3px;border-radius:50%;background:#a3b5a7;transition:transform .2s,background .2s}
+.option-row input[type=checkbox]:checked{background:#287a4b;border-color:#7cf4a6}
+.option-row input[type=checkbox]:checked:before{transform:translateX(18px);background:#e7ffee}
+.option-row input[type=checkbox]:disabled{opacity:.35;cursor:not-allowed}
+.support-note{padding:12px 14px;border:1px solid #304a37;border-radius:13px;background:#101c14;color:#9eb7a4;font-size:11px;line-height:1.6}
+.unsupported{opacity:.38!important;filter:grayscale(.7)}
+.dpad{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(2,50px);gap:8px;justify-content:center;margin:12px auto}
+.dpad button,.movement-extra button{border:1px solid #47734f;border-radius:13px;background:linear-gradient(145deg,#1a3a25,#102118);color:#dfffea;font-size:22px;font-weight:800;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer;transition:transform .12s,background .12s,border-color .12s}
+.dpad button{min-height:50px;padding:0}
+.dpad button.pressed,.movement-extra button.pressed{background:linear-gradient(145deg,#8af8ac,#35c977);color:#082614;border-color:#baffcd;transform:scale(.94);box-shadow:0 0 20px #68f0a055}
+.movement-extra{display:flex;justify-content:center;flex-wrap:wrap;gap:8px}
+.movement-extra button{min-height:40px;padding:0 12px;font-size:11px}
+#control-feedback,#options-message,#chat-status{min-height:18px;margin:0;color:var(--green);font-size:11px}
+#follow-state{margin:12px 0 0;font-size:11px}
+@media(max-width:380px){.options-card,.movement-card,.chat-card{padding:13px}.dpad{grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,46px)}.dpad button{min-height:46px}}
