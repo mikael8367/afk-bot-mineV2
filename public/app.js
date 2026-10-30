@@ -118,7 +118,7 @@ async function waitForLocalRuntime() {
   const statusBox=$("#runtime-mode-status");
   statusBox.textContent="Iniciando o Node.js ARM64 e verificando a API local…";
   let lastError=null;
-  for(let attempt=0;attempt<40;attempt++) {
+  for(let attempt=0;attempt<120;attempt++) {
     try {
       await api("/health");
       statusBox.textContent="Motor local pronto. Os bots serão executados neste Android.";
