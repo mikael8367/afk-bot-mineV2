@@ -60,8 +60,9 @@ fi
 (cd "$ASSET_DIR" && npm ci --omit=dev --omit=optional --no-audit --no-fund)
 test -f "$ASSET_DIR/node_modules/mineflayer/package.json"
 test -f "$ASSET_DIR/node_modules/bedrock-protocol/package.json"
+node "$ROOT_DIR/scripts/prepare-android-modules.mjs" "$ASSET_DIR"
 if find "$ASSET_DIR/node_modules" -type f -name "*.node" -print -quit | grep -q .; then
-  echo "Unexpected native Node addon found in Android bundle; review its ABI before packaging." >&2
+  echo "Unsupported native Node addon remains in Android bundle." >&2
   exit 1
 fi
 printf 'AFK Bot Mine V2 local runtime bundle\n' > "$ASSET_DIR/.bundle-info"
