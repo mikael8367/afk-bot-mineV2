@@ -1,0 +1,6 @@
+{
+  "name":"afk-bot-mine-v2","version":"1.0.0","private":true,"type":"module",
+  "engines":{"node":">=20"},
+  "scripts":{"start":"node src/server.js","test":"node --test"},
+  "dependencies":{"bedrock-protocol":"^3.51.0","express":"^5.1.0","mineflayer":"^4.31.0"}
+}
