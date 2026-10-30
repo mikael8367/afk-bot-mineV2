@@ -79,6 +79,7 @@ function applyCapabilities(edition) {
 }
 function status(data) {
   const online=data.state==="online",connecting=data.state==="connecting";
+  try { window.AndroidBotBridge?.setBotActive(Boolean(online || connecting)); } catch {}
   $("#status").textContent=online?"Conectado":connecting?"Conectando":data.state==="error"?"Erro":"Desconectado";
   $("#status").classList.toggle("online",online);
   $("#state").textContent=online?"Conectado":connecting?"Conectando...":data.state==="error"?"Erro":"Desconectado";
