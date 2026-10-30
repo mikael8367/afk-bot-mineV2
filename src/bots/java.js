@@ -26,11 +26,11 @@ export function createJavaBot(config,cb={},initialOptions={}) {
   bot.loadPlugin(pathfinder);
   let options={...initialOptions},movements=null,followName=null,closed=false;
   let eating=false,equipping=false,deathTimer=null,lastEatAt=0,lastEquipAt=0;
-  const warned=new Set();
+  const warned=new Set(),controlTimers=new Map();
   const log=(level,message)=>cb.onLog?.(level,String(message).slice(0,250));
 
   async function equipAvailableGear() {
-    if(closed||equipping||!bot.entity||(!options.autoEquipArmor&&!options.autoEquipShield)) return;
+    if(closed||equipping||eating||!bot.entity||(!options.autoEquipArmor&&!options.autoEquipShield)) return;
     equipping=true;
     try {
       if(options.autoEquipArmor) {
@@ -61,7 +61,7 @@ export function createJavaBot(config,cb={},initialOptions={}) {
   }
 
   async function eatIfNeeded() {
-    if(closed||eating||!options.autoEat||!bot.entity||typeof bot.food!=="number"||bot.food>15||bot.health<=0) return;
+    if(closed||eating||equipping||!options.autoEat||!bot.entity||typeof bot.food!=="number"||bot.food>15||bot.health<=0) return;
     if(Date.now()-lastEatAt<2500) return;
     lastEatAt=Date.now();
     const foods=bot.inventory.items().map(item=>{
@@ -114,6 +114,8 @@ export function createJavaBot(config,cb={},initialOptions={}) {
   bot.on("error",error=>log("error",error?.message||String(error)));
   bot.on("end",reason=>{
     closed=true;if(deathTimer) clearTimeout(deathTimer);
+    for(const timer of controlTimers.values()) clearTimeout(timer);
+    controlTimers.clear();
     cb.onEnd?.(reason||"Conexão encerrada.");
   });
   bot.on("messagestr",message=>log("chat",String(message)));
@@ -121,6 +123,8 @@ export function createJavaBot(config,cb={},initialOptions={}) {
   return {
     close() {
       closed=true;if(deathTimer) clearTimeout(deathTimer);
+      for(const timer of controlTimers.values()) clearTimeout(timer);
+      controlTimers.clear();
       try { bot.clearControlStates(); } catch {}
       try { bot.pathfinder?.setGoal(null); } catch {}
       try { bot.quit("AFK Bot Mine V2 encerrado"); } catch {}
@@ -133,7 +137,16 @@ export function createJavaBot(config,cb={},initialOptions={}) {
       if(!CONTROLS.has(direction)) throw Error("Controle de movimento inválido.");
       if(!bot.entity) throw Error("O bot ainda não entrou no mundo.");
       if(followName) { followName=null;bot.pathfinder.setGoal(null); }
+      const previousTimer=controlTimers.get(direction);
+      if(previousTimer) clearTimeout(previousTimer);
       bot.setControlState(direction,active);
+      if(active) {
+        const timer=setTimeout(()=>{
+          controlTimers.delete(direction);
+          if(!closed) { try { bot.setControlState(direction,false); } catch {} }
+        },3500);
+        controlTimers.set(direction,timer);
+      } else controlTimers.delete(direction);
     },
     follow(playerName,active) {
       if(!bot.entity) throw Error("O bot ainda não entrou no mundo.");
