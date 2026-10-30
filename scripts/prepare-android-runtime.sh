@@ -37,6 +37,11 @@ mkdir -p "$JNI_DIR"
 install -m 755 "$NODE_BIN" "$JNI_DIR/libnode.so"
 file "$JNI_DIR/libnode.so" | grep -q "ELF 64-bit" || { echo "Unexpected Node runtime binary" >&2; exit 1; }
 
+PANEL_ASSET_DIR="$ROOT_DIR/app/src/main/assets/panel"
+rm -rf "$PANEL_ASSET_DIR"
+mkdir -p "$PANEL_ASSET_DIR"
+cp -R "$ROOT_DIR/public/." "$PANEL_ASSET_DIR/"
+
 ASSET_DIR="$ROOT_DIR/app/src/main/assets/local-server"
 rm -rf "$ASSET_DIR"
 mkdir -p "$ASSET_DIR"
