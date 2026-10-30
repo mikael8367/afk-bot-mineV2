@@ -1,23 +1,32 @@
 package com.mikael.afkbotmine
 
-import android.app.Activity
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
-import android.webkit.JavascriptInterface
-import android.os.Bundle
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
-import android.view.Gravity
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
 import android.webkit.*
-import android.widget.*
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
+import android.widget.Toast
+import android.view.Gravity
 import android.view.View
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.concurrent.Executors
 
 class MainActivity : Activity() {
     private val host = "afk-bot-mine-v2.onrender.com"
     private val panelUrl = "https://afk-bot-mine-v2.onrender.com/"
+    private val bridgeExecutor = Executors.newCachedThreadPool()
+    @Volatile private var trustedPanelLoaded = false
     private lateinit var root: LinearLayout
     private lateinit var progress: ProgressBar
     private lateinit var browser: WebView
@@ -28,6 +37,10 @@ class MainActivity : Activity() {
         window.navigationBarColor = Color.rgb(8, 17, 12)
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 26061)
+        }
+        if (runtimePreferences().getString(KEY_MODE, MODE_RENDER) == MODE_DEVICE) {
+            BotRuntimeService.getOrCreateToken(this)
+            startRuntimeService()
         }
         showPanel()
     }
@@ -84,8 +97,10 @@ class MainActivity : Activity() {
         CookieManager.getInstance().setAcceptThirdPartyCookies(browser, false)
         browser.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                val uri = request.url
-                return !(uri.scheme == "https" && uri.host == host)
+                return !isTrustedUrl(request.url.toString())
+            }
+            override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
+                trustedPanelLoaded = isTrustedUrl(url)
             }
             override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: android.net.http.SslError) {
                 handler.cancel()
@@ -93,6 +108,7 @@ class MainActivity : Activity() {
             }
             override fun onPageFinished(view: WebView, url: String) {
                 progress.visibility = View.GONE
+                trustedPanelLoaded = isTrustedUrl(url)
                 CookieManager.getInstance().flush()
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -111,36 +127,108 @@ class MainActivity : Activity() {
         browser.loadUrl(panelUrl)
     }
 
+    private fun isTrustedUrl(value: String): Boolean = try {
+        val uri = Uri.parse(value)
+        uri.scheme == "https" && uri.host == host
+    } catch (_: Exception) { false }
+
+    private fun runtimePreferences() = getSharedPreferences("afk_bot_runtime_mode", MODE_PRIVATE)
+
+    private fun startRuntimeService() {
+        val intent = Intent(this, BotRuntimeService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
+    }
 
     private inner class BotBridge {
         @JavascriptInterface
-        fun setBotActive(active: Boolean) {
+        fun getRuntimeMode(): String = runtimePreferences().getString(KEY_MODE, MODE_RENDER) ?: MODE_RENDER
+
+        @JavascriptInterface
+        fun setRuntimeMode(mode: String): String {
+            if (!trustedPanelLoaded) return "error:Painel não verificado."
+            if (mode != MODE_RENDER && mode != MODE_DEVICE) return "error:Modo inválido."
+            runtimePreferences().edit().putString(KEY_MODE, mode).commit()
+            return try {
+                if (mode == MODE_DEVICE) {
+                    BotRuntimeService.getOrCreateToken(this@MainActivity)
+                    stopService(Intent(this@MainActivity, BotMonitorService::class.java))
+                    startRuntimeService()
+                } else {
+                    stopService(Intent(this@MainActivity, BotRuntimeService::class.java))
+                }
+                "ok"
+            } catch (error: Exception) {
+                runtimePreferences().edit().putString(KEY_MODE, MODE_RENDER).commit()
+                "error:${error.message ?: "Não foi possível alterar o modo."}"
+            }
+        }
+
+        @JavascriptInterface
+        fun setBotActive(active: Boolean, mode: String) {
+            if (!trustedPanelLoaded || mode != MODE_RENDER || !active) return
             runOnUiThread {
                 val intent = Intent(this@MainActivity, BotMonitorService::class.java)
-                if (active) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent)
-                    else startService(intent)
-                } else {
-                    stopService(intent)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
+            }
+        }
+
+        @JavascriptInterface
+        fun requestLocalApi(path: String, method: String, body: String, callbackId: String) {
+            if (!trustedPanelLoaded || !ALLOWED_API_PATHS.contains(path) ||
+                (method != "GET" && method != "POST") ||
+                callbackId.length !in 1..64 ||
+                !callbackId.matches(Regex("^[A-Za-z0-9_-]+$")) ||
+                body.length > 10000
+            ) return
+
+            val token = BotRuntimeService.getOrCreateToken(this@MainActivity)
+            bridgeExecutor.execute {
+                var code = 503
+                var responseBody = """{"error":"Motor local indisponível."}"""
+                var connection: HttpURLConnection? = null
+                try {
+                    connection = (URL("http://127.0.0.1:${BotRuntimeService.LOCAL_PORT}$path").openConnection() as HttpURLConnection).apply {
+                        requestMethod = method
+                        connectTimeout = 3500
+                        readTimeout = 5000
+                        setRequestProperty("Accept", "application/json")
+                        setRequestProperty("X-Local-Token", token)
+                        if (method == "POST") {
+                            doOutput = true
+                            setRequestProperty("Content-Type", "application/json")
+                        }
+                    }
+                    if (method == "POST") connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+                    code = connection.responseCode
+                    val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                    responseBody = stream?.bufferedReader()?.use { it.readText() } ?: "{}"
+                } catch (error: Exception) {
+                    responseBody = JSONObject().put("error", error.message ?: "Não foi possível acessar o motor local.").toString()
+                } finally {
+                    connection?.disconnect()
+                }
+                val script = "window.__resolveLocalApi && window.__resolveLocalApi(" +
+                    JSONObject.quote(callbackId) + ",$code," + JSONObject.quote(responseBody) + ")"
+                runOnUiThread {
+                    if (::browser.isInitialized && !isFinishing) browser.evaluateJavascript(script, null)
                 }
             }
         }
     }
 
     private fun shape(color: Int, radius: Int): GradientDrawable =
-        GradientDrawable().apply {
-            setColor(color)
-            cornerRadius = dp(radius).toFloat()
-        }
+        GradientDrawable().apply { setColor(color); cornerRadius = dp(radius).toFloat() }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     @Deprecated("Deprecated in Android API")
     override fun onBackPressed() {
-        if (browser.canGoBack()) browser.goBack() else super.onBackPressed()
+        if (::browser.isInitialized && browser.canGoBack()) browser.goBack() else super.onBackPressed()
     }
 
     override fun onDestroy() {
+        trustedPanelLoaded = false
+        bridgeExecutor.shutdownNow()
         if (::browser.isInitialized) {
             browser.stopLoading()
             browser.loadUrl("about:blank")
@@ -149,5 +237,15 @@ class MainActivity : Activity() {
             browser.destroy()
         }
         super.onDestroy()
+    }
+
+    companion object {
+        private const val KEY_MODE = "execution_mode"
+        private const val MODE_RENDER = "render"
+        private const val MODE_DEVICE = "device"
+        private val ALLOWED_API_PATHS = setOf(
+            "/health", "/api/versions", "/api/status", "/api/logs", "/api/connect",
+            "/api/options", "/api/control", "/api/chat", "/api/follow", "/api/disconnect"
+        )
     }
 }
