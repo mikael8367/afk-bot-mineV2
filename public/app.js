@@ -89,7 +89,7 @@ function status(data) {
 }
 async function refreshStatus() {
   try { status(await api("/api/status")); }
-  catch(error) { $("#status").textContent=error.message.includes("401")?"Abra o link privado":"API indisponível"; }
+  catch(error) { $("#status").textContent="API indisponível"; }
 }
 $("#edition").addEventListener("change",()=>applyCapabilities($("#edition").value));
 
