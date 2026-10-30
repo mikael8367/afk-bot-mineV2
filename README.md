@@ -36,3 +36,13 @@ Execute npm test.
 - Configurações não persistem após reiniciar.
 - Adaptador Bedrock básico precisa de teste em servidor real autorizado.
 - Nenhum movimento automático é habilitado por padrão.
+
+## Controles e automações
+
+O painel inclui controle por toque (frente, trás, esquerda, direita, pulo, corrida e agachar), envio de mensagens, seguir jogador com navegação por caminhos no Java, reconexão automática, renascimento, alimentação automática, armadura e escudo automáticos.
+
+**Compatibilidade atual:** Java oferece os controles e as automações avançadas. Bedrock oferece envio de chat e reconexão automática; movimento e automações de inventário ficam desativados para não enviar pacotes incompatíveis.
+
+O seguidor Java usa Mineflayer Pathfinder com quebra de blocos, torres 1x1 e parkour desativados. O auto-comer evita alimentos conhecidos por causar efeitos negativos. O auto-equipar procura peças de armadura e escudo no inventário; troca a armadura somente quando a peça encontrada tem classificação de material superior, e só usa a mão secundária quando está livre.
+
+As opções ficam guardadas na sessão ativa do bot. Ao reiniciar o serviço do Render, será necessário conectar novamente.
