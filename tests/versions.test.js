@@ -21,3 +21,10 @@ test("keeps automatic detection and rejects unsupported versions",()=>{
   assert.throws(()=>validateConnection({edition:"java",host:"play.example.net",username:"AFK_Bot",version:"99.99"}),/não está na lista/);
   assert.throws(()=>validateConnection({edition:"bedrock",host:"play.example.net",username:"AFK_Bot",version:"99.99"}),/não está na lista/);
 });
+
+test("supports Minecraft Bedrock 1.26.60",()=>{
+  const catalog=getSupportedVersions();
+  assert.ok(catalog.bedrock.versions.includes("1.26.60"));
+  assert.equal(isSupportedVersion("bedrock","1.26.60"),true);
+  assert.equal(validateConnection({edition:"bedrock",host:"play.example.net",username:"AFK_Bot",version:"1.26.60"}).version,"1.26.60");
+});
