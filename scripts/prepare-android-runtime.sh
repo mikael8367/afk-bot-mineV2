@@ -19,6 +19,7 @@ command -v curl >/dev/null || { echo "curl is required" >&2; exit 1; }
 command -v unzip >/dev/null || { echo "unzip is required" >&2; exit 1; }
 command -v sha256sum >/dev/null || { echo "sha256sum is required" >&2; exit 1; }
 command -v npm >/dev/null || { echo "npm is required" >&2; exit 1; }
+command -v file >/dev/null || { echo "file is required" >&2; exit 1; }
 
 curl --fail --location --retry 3 "$NODE_ARCHIVE_URL" -o "$TMP_DIR/node-runtime.zip"
 echo "$NODE_ARCHIVE_SHA256  $TMP_DIR/node-runtime.zip" | sha256sum --check -
@@ -34,6 +35,7 @@ chmod 755 "$NODE_BIN"
 JNI_DIR="$ROOT_DIR/app/src/main/jniLibs/arm64-v8a"
 mkdir -p "$JNI_DIR"
 install -m 755 "$NODE_BIN" "$JNI_DIR/libnode.so"
+file "$JNI_DIR/libnode.so" | grep -q "ELF 64-bit" || { echo "Unexpected Node runtime binary" >&2; exit 1; }
 
 ASSET_DIR="$ROOT_DIR/app/src/main/assets/local-server"
 rm -rf "$ASSET_DIR"
@@ -41,10 +43,21 @@ mkdir -p "$ASSET_DIR"
 cp -R "$ROOT_DIR/src" "$ASSET_DIR/src"
 cp -R "$ROOT_DIR/public" "$ASSET_DIR/public"
 cp "$ROOT_DIR/package.json" "$ASSET_DIR/package.json"
-# Install JS dependencies on the CI host. Optional native addons are excluded:
-# Linux/x64 binaries must never be copied into an Android/arm64 APK. The pure-JS
-# protocol path must be verified separately on a physical Android device.
-(cd "$ASSET_DIR" && npm install --omit=dev --omit=optional --no-audit --no-fund)
+if [ -f "$ROOT_DIR/package-lock.json" ]; then
+  cp "$ROOT_DIR/package-lock.json" "$ASSET_DIR/package-lock.json"
+else
+  echo "package-lock.json not found; resolving a lockfile for this build." >&2
+  (cd "$ASSET_DIR" && npm install --package-lock-only --ignore-scripts --no-audit --no-fund)
+fi
+# Omit optional native addons so Linux host binaries cannot enter the Android APK.
+(cd "$ASSET_DIR" && npm ci --omit=dev --omit=optional --no-audit --no-fund)
+test -f "$ASSET_DIR/node_modules/mineflayer/package.json"
+test -f "$ASSET_DIR/node_modules/bedrock-protocol/package.json"
+if find "$ASSET_DIR/node_modules" -type f -name "*.node" -print -quit | grep -q .; then
+  echo "Unexpected native Node addon found in Android bundle; review its ABI before packaging." >&2
+  exit 1
+fi
+printf 'AFK Bot Mine V2 local runtime bundle\n' > "$ASSET_DIR/.bundle-info"
 
 cp "$ROOT_DIR/runtime/THIRD_PARTY_NOTICES.md" "$ASSET_DIR/THIRD_PARTY_NOTICES.md"
 cp "$ROOT_DIR/runtime/UPSTREAM-LICENSE.txt" "$ASSET_DIR/UPSTREAM-LICENSE.txt"
