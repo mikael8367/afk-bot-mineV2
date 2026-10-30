@@ -144,7 +144,7 @@ class BotRuntimeService : Service() {
 
     private fun prepareServerAssets(target: File) {
         val marker = File(target, ".bundle-version")
-        val expectedVersion = BuildConfig.VERSION_CODE.toString()
+        val expectedVersion = BUNDLE_VERSION
         if (marker.isFile && marker.readText() == expectedVersion &&
             File(target, "src/server.js").isFile && File(target, "node_modules").isDirectory) return
 
@@ -335,6 +335,7 @@ class BotRuntimeService : Service() {
         const val LOCAL_PORT = 39391
         private const val LOOPBACK_HOST = "127.0.0.1"
         private const val NOTIFICATION_ID = 26062
+        private const val BUNDLE_VERSION = "1.1.0"
         private const val PREFS = "afk_bot_runtime"
         private const val TOKEN_KEY = "local_api_token"
         private const val MAX_LOG_BYTES = 1024L * 1024L
