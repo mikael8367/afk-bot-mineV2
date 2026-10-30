@@ -1,16 +1,121 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08110c"><meta name="description" content="Painel mobile para controle do AFK Bot Mine V2"><title>AFK Bot Mine V2</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="/style.css"></head><body>
-<header><b class="logo">A</b><div class="brand"><strong>AFK BOT MINE</strong><small>CONTROL CENTER · V2</small></div><span id="status">Desconectado</span></header>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#08110c">
+  <meta name="description" content="Painel mobile para controle do AFK Bot Mine V2">
+  <title>AFK Bot Mine V2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <b class="logo">A</b>
+  <div class="brand"><strong>AFK BOT MINE</strong><small>CONTROL CENTER · V2</small></div>
+  <span id="status">Desconectado</span>
+</header>
 <main>
-<section class="page active" id="page-home"><p class="eyebrow">PAINEL DE CONTROLE</p><h1>Seu bot.<br><em>Suas regras.</em></h1><p class="muted">Gerencie suas conexões Minecraft em um só lugar.</p>
-<article class="hero-card"><div class="card-top"><small>ESTADO DA CONEXÃO</small><span class="live-indicator"><i></i> LIVE STATUS</span></div><h2 id="state">Desconectado</h2><p id="server-label">Nenhum servidor configurado</p><i id="pulse"></i></article>
-<div class="action-row"><button class="primary" data-go="bots">＋ &nbsp; Configurar bot</button><button id="disconnect" class="secondary">Parar bot</button></div>
-<div class="section-heading"><strong>Visão geral</strong><span>AFK SYSTEM / 02</span></div><div class="mini-grid"><div class="mini-card"><small>PLATAFORMAS</small><b>Java + Bedrock</b></div><div class="mini-card"><small>MONITORAMENTO</small><b>Tempo real</b></div></div><p class="muted">Use somente servidores onde bots são permitidos.</p></section>
-<section class="page" id="page-bots"><p class="eyebrow">NOVA CONEXÃO</p><h1>Configurar <em>bot</em></h1><p class="muted">Informe os dados do servidor para iniciar a conexão.</p><form id="connect-form">
-<label>Edição<select name="edition"><option value="java">Java Edition</option><option value="bedrock">Bedrock Edition</option></select></label>
-<label>Endereço do servidor<input name="host" required maxlength="253" placeholder="servidor.exemplo.net"></label><div class="two"><label>Porta<input name="port" type="number" min="1" max="65535" placeholder="25565"></label><label>Nome do bot<input name="username" value="AFKBot" required minlength="3" maxlength="16"></label></div>
-<label>Versão do Minecraft<input name="version" placeholder="Ex.: 1.21.4 (opcional)"></label><label>Autenticação<select name="auth"><option value="offline">Offline (se permitido pelo servidor)</option><option value="microsoft">Microsoft</option></select></label><button class="primary full">INICIAR CONEXÃO &nbsp; →</button></form><p id="message" role="status"></p></section>
-<section class="page" id="page-logs"><p class="eyebrow">SISTEMA / EVENTOS</p><h1>Central de <em>logs</em></h1><p class="muted">Acompanhe mensagens e eventos da conexão.</p><div id="logs">Aguardando registros do sistema...</div><button id="refresh" class="secondary full">↻ &nbsp; Atualizar registros</button></section>
-<section class="page" id="page-settings"><p class="eyebrow">PREFERÊNCIAS</p><h1>Ajustes do <em>painel</em></h1><div class="setting-card"><strong>◈ &nbsp; Sessão protegida</strong><p class="muted">Este navegador está autenticado pelo seu link privado. Para encerrar o acesso neste aparelho, limpe os cookies do site.</p></div><div class="setting-card"><strong>⌁ &nbsp; Segurança</strong><p class="muted">Não compartilhe seu link privado. Não digite sua senha Microsoft neste painel.</p></div></section>
+  <section class="page active" id="page-home">
+    <p class="eyebrow">PAINEL DE CONTROLE</p>
+    <h1>Seu bot.<br><em>Suas regras.</em></h1>
+    <p class="muted">Gerencie conexão, movimento e automações em um só lugar.</p>
+    <article class="hero-card">
+      <div class="card-top"><small>ESTADO DA CONEXÃO</small><span class="live-indicator"><i></i> LIVE STATUS</span></div>
+      <h2 id="state">Desconectado</h2>
+      <p id="server-label">Nenhum servidor configurado</p><i id="pulse"></i>
+    </article>
+    <div class="action-row"><button class="primary" data-go="bots">＋ &nbsp; Configurar bot</button><button id="disconnect" class="secondary">Parar bot</button></div>
+    <div class="section-heading"><strong>Visão geral</strong><span>AFK SYSTEM / 02</span></div>
+    <div class="mini-grid"><div class="mini-card"><small>PLATAFORMAS</small><b>Java + Bedrock</b></div><div class="mini-card"><small>CONTROLES</small><b>Automáticos</b></div></div>
+    <p class="muted">Use somente servidores onde bots são permitidos.</p>
+  </section>
+
+  <section class="page" id="page-bots">
+    <p class="eyebrow">NOVA CONEXÃO</p>
+    <h1>Configurar <em>bot</em></h1>
+    <p class="muted">Informe os dados do servidor para iniciar a conexão.</p>
+    <form id="connect-form">
+      <label>Edição<select id="edition" name="edition"><option value="java">Java Edition</option><option value="bedrock">Bedrock Edition</option></select></label>
+      <label>Endereço do servidor<input name="host" required maxlength="253" placeholder="servidor.exemplo.net"></label>
+      <div class="two">
+        <label>Porta<input name="port" type="number" min="1" max="65535" placeholder="25565"></label>
+        <label>Nome do bot<input name="username" value="AFKBot" required minlength="3" maxlength="16"></label>
+      </div>
+      <label>Versão do Minecraft<input name="version" placeholder="Ex.: 1.21.4 (opcional)"></label>
+      <label>Autenticação<select name="auth"><option value="offline">Offline (se permitido pelo servidor)</option><option value="microsoft">Microsoft</option></select></label>
+      <button class="primary full">INICIAR CONEXÃO &nbsp; →</button>
+    </form>
+    <p id="message" role="status"></p>
+
+    <div class="feature-section">
+      <div class="section-heading"><strong>Comportamento automático</strong><span>BOT AI / OPTIONS</span></div>
+      <form id="options-form" class="options-card">
+        <label class="option-row"><span><b>Auto reconectar</b><small>Tenta conectar novamente se cair.</small></span><input id="opt-reconnect" type="checkbox" checked></label>
+        <label class="option-row" data-java-only><span><b>Auto renascer</b><small>Renasce após morrer.</small></span><input id="opt-respawn" type="checkbox" checked></label>
+        <label class="option-row" data-java-only><span><b>Auto comer</b><small>Usa comida do inventário quando a fome baixar.</small></span><input id="opt-eat" type="checkbox" checked></label>
+        <label class="option-row" data-java-only><span><b>Equipar armaduras</b><small>Veste a melhor peça disponível no inventário.</small></span><input id="opt-armor" type="checkbox" checked></label>
+        <label class="option-row" data-java-only><span><b>Equipar escudo</b><small>Coloca o escudo na mão secundária quando livre.</small></span><input id="opt-shield" type="checkbox" checked></label>
+        <button class="secondary full" type="submit">SALVAR OPÇÕES</button>
+        <p id="options-message" role="status"></p>
+      </form>
+      <p id="feature-support" class="support-note">Selecione a edição para ver os recursos compatíveis.</p>
+    </div>
+
+    <div class="feature-section">
+      <div class="section-heading"><strong>Movimentação</strong><span>TOQUE E SEGURE</span></div>
+      <div class="movement-card">
+        <p class="muted">Segure uma direção. Também dá para pressionar duas direções ao mesmo tempo para andar na diagonal.</p>
+        <div class="dpad" aria-label="Controles de movimento">
+          <span></span><button type="button" data-control="forward" data-java-control aria-label="Frente">↑</button><span></span>
+          <button type="button" data-control="left" data-java-control aria-label="Esquerda">←</button><button type="button" data-control="back" data-java-control aria-label="Trás">↓</button><button type="button" data-control="right" data-java-control aria-label="Direita">→</button>
+        </div>
+        <div class="movement-extra"><button type="button" data-control="jump" data-java-control>⤒ Pular</button><button type="button" data-control="sprint" data-java-control>» Correr</button><button type="button" data-control="sneak" data-java-control>⌄ Agachar</button></div>
+        <p id="control-feedback" role="status"></p>
+      </div>
+    </div>
+
+    <div class="feature-section">
+      <div class="section-heading"><strong>Seguir jogador</strong><span>PATHFINDING</span></div>
+      <div class="movement-card">
+        <label>Nome exato do jogador<input id="follow-player" maxlength="16" placeholder="NomeDoJogador"></label>
+        <div class="action-row"><button type="button" id="follow-start" class="primary">Seguir jogador</button><button type="button" id="follow-stop" class="secondary">Parar</button></div>
+        <p id="follow-state" class="muted">Parado</p>
+      </div>
+    </div>
+
+    <div class="feature-section">
+      <div class="section-heading"><strong>Mensagem no chat</strong><span>CHAT / SEND</span></div>
+      <form id="chat-form" class="chat-card">
+        <label>Mensagem<input id="chat-message" maxlength="256" placeholder="Digite uma mensagem..." required></label>
+        <button class="primary full" type="submit">ENVIAR MENSAGEM</button>
+        <p id="chat-status" role="status"></p>
+      </form>
+    </div>
+  </section>
+
+  <section class="page" id="page-logs">
+    <p class="eyebrow">SISTEMA / EVENTOS</p><h1>Central de <em>logs</em></h1>
+    <p class="muted">Acompanhe mensagens e eventos da conexão.</p>
+    <div id="logs">Aguardando registros do sistema...</div>
+    <button id="refresh" class="secondary full">↻ &nbsp; Atualizar registros</button>
+  </section>
+
+  <section class="page" id="page-settings">
+    <p class="eyebrow">PREFERÊNCIAS</p><h1>Ajustes do <em>painel</em></h1>
+    <div class="setting-card"><strong>◈ &nbsp; Sessão protegida</strong><p class="muted">Este navegador está autenticado pelo seu link privado. Para encerrar o acesso neste aparelho, limpe os cookies do site.</p></div>
+    <div class="setting-card"><strong>⌁ &nbsp; Segurança</strong><p class="muted">Não compartilhe seu link privado. Não digite sua senha Microsoft neste painel.</p></div>
+    <div class="setting-card"><strong>⚙ &nbsp; Compatibilidade</strong><p class="muted">Movimentação, seguir jogador, auto renascer, auto comer e equipamento automático são recursos do motor Java nesta versão. Bedrock permite chat e reconexão.</p></div>
+  </section>
 </main>
-<nav aria-label="Navegação principal"><button class="selected" data-tab="home" aria-label="Início"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><small>Início</small></button><button data-tab="bots" aria-label="Bots"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="13" rx="3"/><path d="M12 3v4M8 12h.01M16 12h.01M9 16h6"/></svg><small>Bots</small></button><button data-tab="logs" aria-label="Logs"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><small>Logs</small></button><button data-tab="settings" aria-label="Ajustes"><svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="m19.4 15 .1.1 1.1.9-1.2 2.1-1.4-.5a8 8 0 0 1-1.6.9l-.3 1.5h-2.4l-.3-1.5a8 8 0 0 1-1.6-.9l-1.4.5-1.2-2.1 1.1-.9a8 8 0 0 1 0-1.9l-1.1-.9 1.2-2.1 1.4.5a8 8 0 0 1 1.6-.9l.3-1.5h2.4l.3 1.5a8 8 0 0 1 1.6.9l1.4-.5 1.2 2.1-1.1.9a8 8 0 0 1-.1 1.9z"/></svg><small>Ajustes</small></button></nav>
-<script src="/app.js" defer></script></body></html>
+<nav aria-label="Navegação principal">
+  <button class="selected" data-tab="home" aria-label="Início"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><small>Início</small></button>
+  <button data-tab="bots" aria-label="Bots"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="13" rx="3"/><path d="M12 3v4M8 12h.01M16 12h.01M9 16h6"/></svg><small>Bots</small></button>
+  <button data-tab="logs" aria-label="Logs"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><small>Logs</small></button>
+  <button data-tab="settings" aria-label="Ajustes"><svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="m19.4 15 .1.1 1.1.9-1.2 2.1-1.4-.5a8 8 0 0 1-1.6.9l-.3 1.5h-2.4l-.3-1.5a8 8 0 0 1-1.6-.9l-1.4.5-1.2-2.1 1.1-.9a8 8 0 0 1 0-1.9l-1.1-.9 1.2-2.1 1.4.5a8 8 0 0 1 1.6-.9l.3-1.5h2.4l.3 1.5a8 8 0 0 1 1.6.9l1.4-.5 1.2 2.1-1.1.9a8 8 0 0 1-.1 1.9z"/></svg><small>Ajustes</small></button>
+</nav>
+<script src="/app.js" defer></script>
+</body>
+</html>
