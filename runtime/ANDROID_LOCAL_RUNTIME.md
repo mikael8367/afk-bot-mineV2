@@ -1,33 +1,33 @@
 # Android local runtime — implementation status
 
-This branch is for adding a true on-device bot engine alongside the existing Render engine.
+The development branch implements a two-engine design: Render (remote) and Dispositivo (Android ARM64).
 
-## Required architecture
+## Runtime architecture
 
-- Node.js ARM64 executable packaged in the APK (not downloaded after installation).
-- Android foreground service owns the local Node process.
-- Local HTTP API bound only to `127.0.0.1`; never expose the local bot API on all network interfaces.
-- The existing panel selects Render or Device and targets the matching API.
-- Local backend bundle contains the same Java/Bedrock bot engine, public panel, and pinned production dependencies.
-- Service shutdown disconnects the bot and terminates the child process.
-- Device mode is available only on ARM64 devices supported by the packaged runtime.
+- A Node.js ARM64 executable is bundled in the APK; no Node runtime is downloaded after installation.
+- The APK also bundles the panel UI, backend source, and production Node.js dependencies.
+- `BotRuntimeService` owns the Node child process, runs it as an Android foreground service, and keeps a persistent status notification.
+- The local Express API binds only to `127.0.0.1:39391` and requires a random per-install token. The token is kept in Android private preferences and is added by the native bridge, not exposed to panel JavaScript.
+- The WebView loads the packaged panel and the native bridge routes API calls to either the Render service or the local loopback API.
+- The local Bedrock adapter selects `jsp-raknet`; the Android staging script patches the Bedrock discovery helper to use the JavaScript RakNet backend and removes host-native `.node` prebuilds from the Android bundle. Render keeps its existing default backend.
+- The Node runtime source is pinned to Towartz/nodejs-arm. Preserve its attribution and additional license notices in every distributed build.
 
-## Runtime source and attribution
+## Compatibility
 
-The current staging script uses the pinned Node.js ARM64 release from Towartz's Node.js for Android project. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Its additional license restrictions require preserving attribution in distributed artifacts and build workflows.
+- Runtime: Android API 24+ and ARM64. The Galaxy A12 Android 12 / API 31 is within the stated OS/ABI range.
+- The Android service uses a persistent notification and a renewable partial wake lock. Device-manufacturer battery restrictions can still interrupt a process.
+- Java uses Mineflayer. Bedrock uses bedrock-protocol; the Android path uses pure JavaScript RakNet to avoid the native C++ addon.
 
-## Current state
+## Build and checks
 
-`scripts/prepare-android-runtime.sh` downloads and verifies the pinned runtime archive, stages the executable under Android's ARM64 native-library directory, and stages the backend/panel assets. It currently installs production JavaScript dependencies during staging with optional native addons excluded. Because the repository does not yet contain a lockfile, dependency versions are not yet reproducible; a reviewed `package-lock.json` is required before production packaging.
-
-This is only the runtime-staging foundation. It does **not** yet provide the Android foreground service, local API lifecycle, WebView mode switching, or a tested APK. Do not expose a Device mode selector until those pieces are implemented and verified.
+- Stage dependencies/runtime/assets: `bash scripts/prepare-android-runtime.sh`
+- JavaScript syntax: `node --check src/server.js && node --check public/app.js`
+- Node tests: `npm test`
+- Android code/resource verification: GitHub Actions workflow `.github/workflows/android-runtime-verify.yml`; it does not assemble an APK.
+- APK workflow `.github/workflows/android-apk.yml` is manual only. Do not trigger it unless the user explicitly requests an APK.
 
 ## Verification still required
 
-1. Generate and review a lockfile using Node.js 24 or newer.
-2. Add and review a lockfile, then run the staging script and verify the executable with `file` and `readelf`. (The Android ELF cannot be executed on the Linux CI host; `node --version` must be tested on Android.)
-3. Verify the Node executable starts on Android API 31 / ARM64.
-4. Start the backend on loopback and exercise health, versions, connect/disconnect, logs, chat, and reconnect APIs.
-5. Confirm Bedrock 1.26.60 and Java bot dependencies work without unsupported native addons.
-6. Verify foreground-service behavior, notifications, process recovery, battery restrictions, and memory use on a physical Galaxy A12.
-7. Run the full test suite and inspect the final APK contents before calling Device mode complete.
+A green CI run proves the Node tests, runtime staging, Kotlin compilation, and Android resource processing only. It does **not** prove that the Node executable starts on a physical phone, that Java/Bedrock can connect to real servers, or that Samsung battery management leaves the service alive. Before claiming Device mode is fully working, test on the Galaxy A12: cold start, API health, Java connect/chat/disconnect, Bedrock 1.26.60 connect/chat/disconnect, reconnect, screen off/background, stopping the bot from the notification, switching engines, memory use, and process recovery.
+
+No APK or Render deployment is generated by this branch's routine verification.
