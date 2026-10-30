@@ -314,6 +314,7 @@ class BotRuntimeService : Service() {
         try {
             if (wakeLock?.isHeld == true) wakeLock?.release()
         } catch (_: Exception) {}
+        try { stopForeground(true) } catch (_: Exception) {}
         super.onDestroy()
     }
 
