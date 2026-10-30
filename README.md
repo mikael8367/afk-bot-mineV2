@@ -7,21 +7,21 @@ Painel web mobile-first para gerenciar um bot Minecraft Java ou Bedrock em servi
 - Host, porta, nome, versão e autenticação configuráveis.
 - Reconexão automática e logs.
 - Interface mobile com abas inferiores: Início, Bots, Logs e Ajustes.
-- API protegida por ADMIN_TOKEN, com sessão HttpOnly para dispensar digitação manual.
+- API pública sem token; painel abre diretamente no navegador e no aplicativo.
 
 ## Execução local
-Node.js 20 ou superior (22 recomendado). Configure ADMIN_TOKEN e ACCESS_KEY no ambiente, execute npm install e npm start. Abra /access/SEU_ACCESS_KEY para autenticar o navegador; o servidor grava um cookie HttpOnly e redireciona para o painel.
+Node.js 20 ou superior (22 recomendado). Execute npm install e npm start. O painel e a API ficam públicos, sem etapa de autenticação.
 
 ## Render
-Configure ADMIN_TOKEN e ACCESS_KEY como variáveis secretas do serviço. O link privado de acesso é https://SEU-SERVICO.onrender.com/access/SEU_ACCESS_KEY. Não compartilhe esse link: ele funciona como uma chave de acesso. Para revogar links antigos, troque ACCESS_KEY no Render. A sessão do navegador expira em 30 dias; limpe os cookies do site para sair antes disso.
+Não é necessário configurar ADMIN_TOKEN ou ACCESS_KEY. O painel abre pela URL normal do serviço.
 
 O plano gratuito pode suspender serviços sem tráfego e não garante funcionamento 24/7.
 
 ## Segurança e compatibilidade
-A API continua protegida. O link privado entrega um cookie HttpOnly, Secure e SameSite=Strict; não há token no JavaScript nem campo para digitá-lo. Offline só funciona quando o servidor permite. Microsoft pode exigir autenticação adicional; nunca coloque senha Microsoft neste painel. Use bots somente em servidores onde isso seja permitido.
+**Aviso:** a API é pública e não exige token. Qualquer pessoa que conheça a URL do serviço pode consultar o estado e tentar controlar o bot, inclusive conectar, desconectar e enviar mensagens. As rotas de escrita têm limite básico de 30 requisições por IP por minuto, mas isso não substitui autenticação. Não use esta configuração se precisar de controle privado. Offline só funciona quando o servidor permite. Microsoft pode exigir autenticação adicional; nunca coloque senha Microsoft neste painel. Use bots somente em servidores onde isso seja permitido.
 
 ## API
-Todas as rotas /api exigem sessão autenticada ou Authorization: Bearer ADMIN_TOKEN.
+As rotas /api são públicas e não exigem sessão ou token. As rotas POST têm limite básico por IP.
 - GET /health: saúde pública.
 - GET /api/status: estado.
 - GET /api/logs: registros recentes.
