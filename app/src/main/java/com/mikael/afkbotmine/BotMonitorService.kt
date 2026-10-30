@@ -45,15 +45,17 @@ class BotMonitorService : Service() {
                 readTimeout = 5000
                 setRequestProperty("Accept", "application/json")
             }
-            if (connection.responseCode !in 200..299) throw IllegalStateException("HTTP ${connection.responseCode}")
+            if (connection.responseCode !in 200..299) throw IllegalStateException("HTTP \${connection.responseCode}")
             val data = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
             val state = data.optString("state", "offline")
             val online = data.optBoolean("connected", state == "online")
             val active = online || state == "connecting"
-            if (!active && !data.has("config") || (!active && data.isNull("config"))) {
+
+            if (!active && data.isNull("config")) {
                 stopMonitor()
                 return
             }
+
             if (active) {
                 offlineChecks = 0
                 val label = if (online) "Bot conectado" else "Bot reconectando"
@@ -64,12 +66,11 @@ class BotMonitorService : Service() {
                     .notify(NOTIFICATION_ID, notification("$label · $server"))
             } else {
                 offlineChecks++
-                if (offlineChecks >= 12) stopMonitor()
+                if (offlineChecks >= MAX_OFFLINE_CHECKS) stopMonitor()
             }
         } catch (_: Exception) {
-            // Falhas temporárias de rede não encerram a notificação imediatamente.
             offlineChecks++
-            if (offlineChecks >= 12) stopMonitor()
+            if (offlineChecks >= MAX_OFFLINE_CHECKS) stopMonitor()
         } finally {
             connection?.disconnect()
         }
@@ -90,9 +91,44 @@ class BotMonitorService : Service() {
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .setContentTitle("AFK Bot Mine V2")
             .setContentText(message)
-            .setStyle(Notification.BigTextStyle().bigText("$message\\nO monitoramento continua em segundo plano."))
+            .setStyle(Notification.BigTextStyle().bigText("$message\nO monitoramento continua em segundo plano."))
             .setContentIntent(openApp)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .build()
+    }
+
+    private fun createChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId, "Bots ativos", NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Notificação persistente enquanto houver bot ativo."
+            }
+            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        }
+    }
+
+    private fun stopMonitor() {
+        if (stopped) return
+        stopped = true
+        stopForeground(true)
+        stopSelf()
+    }
+
+    override fun onDestroy() {
+        stopped = true
+        executor.shutdownNow()
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    companion object {
+        const val ACTION_STOP = "com.mikael.afkbotmine.STOP_MONITOR"
+        private const val NOTIFICATION_ID = 26060
+        private const val MAX_OFFLINE_CHECKS = 12
+        private const val PANEL_URL = "https://afk-bot-mine-v2.onrender.com"
+    }
+}
