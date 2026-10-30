@@ -3,49 +3,36 @@
 Painel web mobile-first para gerenciar um bot Minecraft Java ou Bedrock em servidores compatíveis.
 
 ## Recursos
-- Adaptador Java com Mineflayer.
-- Adaptador Bedrock com bedrock-protocol.
+- Adaptador Java com Mineflayer e adaptador Bedrock com bedrock-protocol.
 - Host, porta, nome, versão e autenticação configuráveis.
 - Reconexão automática e logs.
-- Interface adaptada para celular com abas inferiores: Início, Bots, Logs e Ajustes.
-- API protegida por ADMIN_TOKEN.
+- Interface mobile com abas inferiores: Início, Bots, Logs e Ajustes.
+- API protegida por ADMIN_TOKEN, com sessão HttpOnly para dispensar digitação manual.
 
-## Requisitos e execução
-Node.js 20 ou superior (22 recomendado).
-1. Copie .env.example para .env.
-2. Defina ADMIN_TOKEN com um segredo longo e aleatório.
-3. Execute npm install e depois npm start.
-4. Abra http://localhost:3000 e informe o token em Ajustes.
+## Execução local
+Node.js 20 ou superior (22 recomendado). Configure ADMIN_TOKEN e ACCESS_KEY no ambiente, execute npm install e npm start. Abra /access/SEU_ACCESS_KEY para autenticar o navegador; o servidor grava um cookie HttpOnly e redireciona para o painel.
 
 ## Render
-Importe o repositório como Web Service. Build: npm install. Start: npm start. Configure ADMIN_TOKEN nas variáveis de ambiente. O plano gratuito pode suspender serviços sem tráfego e não é adequado para garantir bot 24/7; confira os limites atuais do provedor.
+Configure ADMIN_TOKEN e ACCESS_KEY como variáveis secretas do serviço. O link privado de acesso é https://SEU-SERVICO.onrender.com/access/SEU_ACCESS_KEY. Não compartilhe esse link: ele funciona como uma chave de acesso. Para revogar links antigos, troque ACCESS_KEY no Render. A sessão do navegador expira em 30 dias; limpe os cookies do site para sair antes disso.
 
-## Autenticação e compatibilidade
-Offline só funciona quando o servidor permite. Microsoft pode exigir interação de autenticação adicional no ambiente e ainda precisa de validação prática. Nunca coloque senha Microsoft no painel. Alguns servidores bloqueiam clientes automatizados; use apenas onde isso é permitido.
+O plano gratuito pode suspender serviços sem tráfego e não garante funcionamento 24/7.
+
+## Segurança e compatibilidade
+A API continua protegida. O link privado entrega um cookie HttpOnly, Secure e SameSite=Strict; não há token no JavaScript nem campo para digitá-lo. Offline só funciona quando o servidor permite. Microsoft pode exigir autenticação adicional; nunca coloque senha Microsoft neste painel. Use bots somente em servidores onde isso seja permitido.
 
 ## API
-Todas as rotas /api exigem Authorization: Bearer SEU_TOKEN.
+Todas as rotas /api exigem sessão autenticada ou Authorization: Bearer ADMIN_TOKEN.
 - GET /health: saúde pública.
 - GET /api/status: estado.
 - GET /api/logs: registros recentes.
 - POST /api/connect: inicia conexão.
 - POST /api/disconnect: encerra conexão.
 
-Exemplo de corpo:
-{
-  "edition":"java",
-  "host":"play.example.net",
-  "port":25565,
-  "username":"AFKBot",
-  "auth":"offline"
-}
-Para Bedrock, use edition bedrock e a porta UDP configurada pelo servidor (frequentemente 19132).
-
 ## Testes
 Execute npm test.
 
-## Limitações iniciais
+## Limitações
 - Uma conexão por instância.
 - Configurações não persistem após reiniciar.
-- Adaptador Bedrock básico e ainda precisa ser testado em servidor real autorizado.
+- Adaptador Bedrock básico precisa de teste em servidor real autorizado.
 - Nenhum movimento automático é habilitado por padrão.
