@@ -64,8 +64,11 @@ export function createJavaBot(config,cb={},initialOptions={}) {
     if(closed||eating||equipping||!options.autoEat||!bot.entity||typeof bot.food!=="number"||bot.food>15||bot.health<=0) return;
     if(Date.now()-lastEatAt<2500) return;
     lastEatAt=Date.now();
+    const foodData=bot.registry.foods;
     const foods=bot.inventory.items().map(item=>{
-      const data=bot.registry.foods?.[item.name]||bot.registry.foods?.["minecraft:"+item.name];
+      const data=Array.isArray(foodData)
+        ?foodData.find(food=>food.name===item.name||food.id===item.type)
+        :(foodData?.[item.name]||foodData?.["minecraft:"+item.name]);
       return {item,points:Number(data?.foodPoints??data?.food??0),saturation:Number(data?.saturation??0)};
     }).filter(entry=>entry.points>0&&!BANNED_FOOD.has(entry.item.name));
     foods.sort((a,b)=>(b.points-a.points)||(b.saturation-a.saturation));
