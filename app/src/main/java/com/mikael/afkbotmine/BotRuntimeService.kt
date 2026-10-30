@@ -66,6 +66,11 @@ class BotRuntimeService : Service() {
 
     private fun superviseNode() {
         try {
+            if (Build.VERSION.SDK_INT < 24) {
+                updateNotification("O Node.js incluído exige Android 7 ou superior (API 24).")
+                stopSelf()
+                return
+            }
             if (!Build.SUPPORTED_ABIS.any { it == "arm64-v8a" }) {
                 updateNotification("Este aparelho não oferece suporte ao runtime ARM64 incluído.")
                 stopSelf()
@@ -152,20 +157,23 @@ class BotRuntimeService : Service() {
     }
 
     private fun copyAssetTree(assetPath: String, destination: File) {
-        val children = assets.list(assetPath) ?: emptyArray()
-        if (children.isNotEmpty()) {
-            if (!destination.exists() && !destination.mkdirs()) {
-                throw IllegalStateException("Não foi possível criar ${destination.name}.")
-            }
-            for (child in children) copyAssetTree("$assetPath/$child", File(destination, child))
-            return
-        }
         destination.parentFile?.let {
             if (!it.exists() && !it.mkdirs()) throw IllegalStateException("Falha ao criar pasta de assets.")
         }
-        assets.open(assetPath).use { input ->
-            destination.outputStream().use { output -> input.copyTo(output) }
+        // Try opening as a file first; directories (including empty ones) cannot be opened.
+        val input = try { assets.open(assetPath) } catch (_: Exception) { null }
+        if (input != null) {
+            input.use { source ->
+                destination.outputStream().use { output -> source.copyTo(output) }
+            }
+            return
         }
+        val children = assets.list(assetPath)
+            ?: throw IllegalStateException("Asset não encontrado: " + assetPath)
+        if (!destination.exists() && !destination.mkdirs()) {
+            throw IllegalStateException("Não foi possível criar " + destination.name + ".")
+        }
+        for (child in children) copyAssetTree(assetPath + "/" + child, File(destination, child))
     }
 
     private fun readProcessOutput(process: Process) {
