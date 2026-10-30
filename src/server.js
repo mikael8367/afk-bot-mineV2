@@ -5,7 +5,7 @@ import {BotManager} from "./core/bot-manager.js";
 import {parseBoolean} from "./core/validation.js";
 import {getSupportedVersions} from "./core/versions.js";
 
-const app=express(),dir=path.dirname(fileURLToPath(import.meta.url)),port=Number(process.env.PORT||3000);
+const app=express(),dir=path.dirname(fileURLToPath(import.meta.url)),port=Number(process.env.PORT||3000),host=process.env.HOST||"0.0.0.0";
 const manager=new BotManager({autoReconnect:parseBoolean(process.env.AUTO_RECONNECT,true),reconnectDelay:Math.max(3000,Number(process.env.RECONNECT_DELAY_MS)||10000)});
 
 app.disable("x-powered-by");
@@ -40,6 +40,6 @@ app.post("/api/control",(q,r)=>{try{r.json({ok:true,...manager.control(q.body)})
 app.post("/api/chat",(q,r)=>{try{r.json({ok:true,...manager.chat(q.body)});}catch(e){r.status(400).json({error:e.message});}});
 app.post("/api/follow",(q,r)=>{try{r.json({ok:true,...manager.follow(q.body)});}catch(e){r.status(400).json({error:e.message});}});
 app.post("/api/disconnect",(_q,r)=>{manager.disconnect();r.json({ok:true,status:manager.status()});});
-const server=app.listen(port,"0.0.0.0",()=>console.log("AFK Bot Mine V2 ativo na porta "+port));
+const server=app.listen(port,host,()=>console.log("AFK Bot Mine V2 ativo em "+host+":"+port));
 function shutdown(){manager.disconnect("Servidor encerrando.");server.close(()=>process.exit(0));}
 process.on("SIGTERM",shutdown);process.on("SIGINT",shutdown);
