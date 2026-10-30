@@ -105,7 +105,18 @@
 
   <section class="page" id="page-settings">
     <p class="eyebrow">PREFERÊNCIAS</p><h1>Ajustes do <em>painel</em></h1>
-    <div class="setting-card"><strong>◈ &nbsp; Sessão protegida</strong><p class="muted">Este navegador está autenticado pelo seu link privado. Para encerrar o acesso neste aparelho, limpe os cookies do site.</p></div>
+    <div class="setting-card" id="runtime-card">
+      <strong>⚙ &nbsp; Roda bot</strong>
+      <p class="muted">Escolha onde o motor Minecraft será executado. O modo Dispositivo usa o Node.js incluído no aplicativo e funciona somente em Android ARM64.</p>
+      <label for="runtime-mode">Local de execução
+        <select id="runtime-mode">
+          <option value="render">Roda o bot no Render</option>
+          <option value="device">Roda o bot no dispositivo</option>
+        </select>
+      </label>
+      <p id="runtime-mode-status" class="support-note" role="status">Verificando disponibilidade do motor…</p>
+    </div>
+    <div class="setting-card"><strong>◈ &nbsp; Privacidade e segurança</strong><p class="muted">O painel do Render usa uma API pública sem senha. No modo Dispositivo, a API fica limitada ao próprio celular e exige um token interno. Não compartilhe links de controle.</p></div>
     <div class="setting-card"><strong>⌁ &nbsp; Segurança</strong><p class="muted">Não compartilhe seu link privado. Não digite sua senha Microsoft neste painel.</p></div>
     <div class="setting-card"><strong>⚙ &nbsp; Compatibilidade</strong><p class="muted">Movimentação, seguir jogador, auto renascer, auto comer e equipamento automático são recursos do motor Java nesta versão. Bedrock permite chat e reconexão.</p></div>
   </section>
