@@ -4,7 +4,11 @@ export function createBedrockBot(config,cb={}) {
   const client=bedrock.createClient({
     host:config.host,port:config.port,username:config.username,
     offline:config.auth!=="microsoft",auth:config.auth==="microsoft"?"microsoft":undefined,
-    ...(config.version?{version:config.version}:{})
+    ...(config.version?{version:config.version}:{}),
+    ...(process.env.BEDROCK_RAKNET_BACKEND ? {
+      raknetBackend:process.env.BEDROCK_RAKNET_BACKEND,
+      useRaknetWorkers:false
+    } : {})
   });
   let joined=false;
   client.on("join",()=>{joined=true;cb.onStatus?.("online","Bot Bedrock conectado.");});

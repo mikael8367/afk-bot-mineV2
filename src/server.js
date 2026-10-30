@@ -4,13 +4,23 @@ import {fileURLToPath} from "node:url";
 import {BotManager} from "./core/bot-manager.js";
 import {parseBoolean} from "./core/validation.js";
 import {getSupportedVersions} from "./core/versions.js";
+import {isLocalApiTokenValid} from "./core/local-api-auth.js";
 
-const app=express(),dir=path.dirname(fileURLToPath(import.meta.url)),port=Number(process.env.PORT||3000);
+const app=express(),dir=path.dirname(fileURLToPath(import.meta.url)),port=Number(process.env.PORT||3000),host=process.env.HOST||"0.0.0.0";
 const manager=new BotManager({autoReconnect:parseBoolean(process.env.AUTO_RECONNECT,true),reconnectDelay:Math.max(3000,Number(process.env.RECONNECT_DELAY_MS)||10000)});
 
 app.disable("x-powered-by");
 app.set("trust proxy",1);
 app.use(express.json({limit:"10kb"}));
+
+const localApiToken=process.env.LOCAL_API_TOKEN||"";
+app.use((req,res,next)=>{
+  if(!localApiToken||!(req.path==="/health"||req.path.startsWith("/api/"))) return next();
+  if(!isLocalApiTokenValid(localApiToken,req.get("x-local-token"))) {
+    return res.status(401).json({error:"Token local inválido ou ausente."});
+  }
+  next();
+});
 
 // A API é pública e não exige token. Escritas recebem limite básico por IP.
 const writeWindowMs=60_000,writeLimit=30,writeBuckets=new Map();
@@ -40,6 +50,6 @@ app.post("/api/control",(q,r)=>{try{r.json({ok:true,...manager.control(q.body)})
 app.post("/api/chat",(q,r)=>{try{r.json({ok:true,...manager.chat(q.body)});}catch(e){r.status(400).json({error:e.message});}});
 app.post("/api/follow",(q,r)=>{try{r.json({ok:true,...manager.follow(q.body)});}catch(e){r.status(400).json({error:e.message});}});
 app.post("/api/disconnect",(_q,r)=>{manager.disconnect();r.json({ok:true,status:manager.status()});});
-const server=app.listen(port,"0.0.0.0",()=>console.log("AFK Bot Mine V2 ativo na porta "+port));
+const server=app.listen(port,host,()=>console.log("AFK Bot Mine V2 ativo em "+host+":"+port));
 function shutdown(){manager.disconnect("Servidor encerrando.");server.close(()=>process.exit(0));}
 process.on("SIGTERM",shutdown);process.on("SIGINT",shutdown);

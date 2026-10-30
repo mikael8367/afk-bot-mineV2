@@ -8,6 +8,21 @@ const OPTION_IDS={
 };
 const heldControls=new Set();
 let controlHeartbeat=null;
+let runtimeMode="render";
+let localApiSequence=0;
+const pendingLocalApi=new Map();
+
+window.__resolveLocalApi=(id,statusCode,raw)=>{
+  const pending=pendingLocalApi.get(id);
+  if(!pending) return;
+  pendingLocalApi.delete(id);
+  clearTimeout(pending.timeout);
+  let data={};
+  try { data=JSON.parse(raw||"{}"); }
+  catch { data={error:"Resposta inválida do motor local."}; }
+  if(statusCode>=200&&statusCode<300) pending.resolve(data);
+  else pending.reject(Error(data.error||"HTTP "+statusCode));
+};
 
 function tab(name) {
   document.querySelectorAll(".page").forEach(page=>page.classList.toggle("active",page.id==="page-"+name));
@@ -17,7 +32,29 @@ function tab(name) {
 document.querySelectorAll("[data-tab]").forEach(button=>button.addEventListener("click",()=>tab(button.dataset.tab)));
 document.querySelectorAll("[data-go]").forEach(button=>button.addEventListener("click",()=>tab(button.dataset.go)));
 
+function nativeApiRequest(methodName,url,options={}) {
+  if(!window.AndroidBotBridge?.[methodName]) throw Error("Ponte Android indisponível.");
+  const method=options.method||"GET";
+  const body=typeof options.body==="string"?options.body:"";
+  return new Promise((resolve,reject)=>{
+    const id="native-"+(++localApiSequence);
+    const timeout=setTimeout(()=>{
+      pendingLocalApi.delete(id);
+      reject(Error("O serviço não respondeu. Verifique a conexão e tente novamente."));
+    },20000);
+    pendingLocalApi.set(id,{resolve,reject,timeout});
+    try { window.AndroidBotBridge[methodName](url,method,body,id); }
+    catch(error) {
+      clearTimeout(timeout);
+      pendingLocalApi.delete(id);
+      reject(Error(error?.message||"Falha ao chamar o serviço Android."));
+    }
+  });
+}
+
 async function api(url,options={}) {
+  if(runtimeMode==="device") return nativeApiRequest("requestLocalApi",url,options);
+  if(window.AndroidBotBridge?.requestRenderApi) return nativeApiRequest("requestRenderApi",url,options);
   const response=await fetch(url,{...options,credentials:"same-origin",headers:{"Content-Type":"application/json",...(options.headers||{})}});
   const data=await response.json().catch(()=>({}));
   if(!response.ok) throw Error(data.error||"HTTP "+response.status);
@@ -77,8 +114,105 @@ function applyCapabilities(edition) {
     if($("#follow-state").textContent==="Disponível apenas no Java") $("#follow-state").textContent="Parado";
   }
 }
+async function waitForLocalRuntime() {
+  const statusBox=$("#runtime-mode-status");
+  statusBox.textContent="Iniciando o Node.js ARM64 e verificando a API local…";
+  let lastError=null;
+  for(let attempt=0;attempt<120;attempt++) {
+    try {
+      await api("/health");
+      statusBox.textContent="Motor local pronto. Os bots serão executados neste Android.";
+      return true;
+    } catch(error) {
+      lastError=error;
+      await new Promise(resolve=>setTimeout(resolve,750));
+    }
+  }
+  throw Error(lastError?.message||"O motor local não iniciou dentro do tempo esperado.");
+}
+
+async function changeRuntimeMode(nextMode) {
+  const selector=$("#runtime-mode"),statusBox=$("#runtime-mode-status");
+  const previous=runtimeMode;
+  if(nextMode===previous) return;
+  const bridge=window.AndroidBotBridge;
+  if(!bridge?.setRuntimeMode) {
+    selector.value="render";
+    throw Error("A execução no dispositivo está disponível somente dentro do APK Android.");
+  }
+
+  try {
+    const current=await api("/api/status");
+    const botActive=current.state==="online"||current.state==="connecting";
+    if(botActive) {
+      const origin=previous==="render"?"Render":"dispositivo";
+      const destination=nextMode==="device"?"dispositivo":"Render";
+      const accepted=confirm("Há um bot ativo no motor "+origin+". Para mudar para "+destination+", será necessário desconectar esse bot. Continuar?");
+      if(!accepted) { selector.value=previous; return; }
+      await api("/api/disconnect",{method:"POST",body:"{}"});
+    }
+
+    const result=bridge.setRuntimeMode(nextMode);
+    if(result!=="ok") throw Error(String(result||"Não foi possível alterar o modo."));
+    runtimeMode=nextMode;
+    selector.value=nextMode;
+
+    if(nextMode==="device") {
+      await waitForLocalRuntime();
+    } else {
+      statusBox.textContent="Modo Render selecionado. O bot será executado no servidor remoto.";
+    }
+    await refreshStatus();
+    await loadVersions();
+    if($("#page-logs").classList.contains("active")) await logs();
+  } catch(error) {
+    try { bridge.setRuntimeMode(previous); } catch {}
+    runtimeMode=previous;
+    selector.value=previous;
+    statusBox.textContent="Não foi possível mudar o modo: "+error.message;
+    throw error;
+  }
+}
+
+async function initializeRuntimeMode() {
+  const selector=$("#runtime-mode"),statusBox=$("#runtime-mode-status");
+  const bridge=window.AndroidBotBridge;
+  if(!selector) return;
+  if(!bridge?.getRuntimeMode) {
+    selector.value="render";
+    selector.querySelector('option[value="device"]').disabled=true;
+    statusBox.textContent="Render disponível. Para usar o motor no celular, abra o aplicativo Android.";
+    return;
+  }
+  try {
+    runtimeMode=bridge.getRuntimeMode()==="device"?"device":"render";
+  } catch { runtimeMode="render"; }
+  selector.value=runtimeMode;
+  selector.addEventListener("change",async()=>{
+    const requested=selector.value;
+    try { await changeRuntimeMode(requested); }
+    catch { /* Error detail is shown in the status line. */ }
+  });
+  if(runtimeMode==="device") {
+    try { await waitForLocalRuntime(); }
+    catch(error) {
+      try { bridge.setRuntimeMode("render"); } catch {}
+      runtimeMode="render";
+      selector.value="render";
+      statusBox.textContent="O motor local não iniciou: "+error.message+". O painel voltou ao modo Render.";
+    }
+  } else {
+    statusBox.textContent="Modo Render selecionado. O bot será executado no servidor remoto.";
+  }
+}
+
 function status(data) {
   const online=data.state==="online",connecting=data.state==="connecting";
+  if (online || connecting) {
+    if(runtimeMode==="render") {
+      try { window.AndroidBotBridge?.setBotActive(true,"render"); } catch {}
+    }
+  }
   $("#status").textContent=online?"Conectado":connecting?"Conectando":data.state==="error"?"Erro":"Desconectado";
   $("#status").classList.toggle("online",online);
   $("#state").textContent=online?"Conectado":connecting?"Conectando...":data.state==="error"?"Erro":"Desconectado";
@@ -200,5 +334,7 @@ setInterval(()=>{
   if($("#page-logs").classList.contains("active")) logs();
 },5000);
 applyCapabilities($("#edition").value);
-refreshStatus();
-loadVersions();
+initializeRuntimeMode().then(()=>{
+  refreshStatus();
+  loadVersions();
+});

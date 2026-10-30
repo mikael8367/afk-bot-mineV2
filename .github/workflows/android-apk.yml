@@ -1,13 +1,7 @@
 name: Build Android APK
 on:
+  # APK generation is intentionally manual; ordinary source commits never publish an APK.
   workflow_dispatch:
-  push:
-    paths:
-      - "app/**"
-      - "*.gradle.kts"
-      - "settings.gradle.kts"
-      - "gradle.properties"
-      - ".github/workflows/android-apk.yml"
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,6 +15,12 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      - name: Set up Node.js for the bundled Android runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Stage Node.js ARM64 runtime and backend dependencies
+        run: bash scripts/prepare-android-runtime.sh
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:

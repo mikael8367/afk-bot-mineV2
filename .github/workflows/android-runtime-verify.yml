@@ -1,0 +1,63 @@
+name: Verify Android local runtime (no APK)
+on:
+  push:
+    branches:
+      - feature/android-local-runtime
+    paths:
+      - "app/**"
+      - "src/**"
+      - "public/**"
+      - "scripts/**"
+      - "tests/**"
+      - "package.json"
+      - "runtime/**"
+      - ".github/workflows/android-runtime-verify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-local-runtime-verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install backend dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/server.js
+          node --check public/app.js
+
+      - name: Run backend tests
+        run: npm test
+
+      - name: Stage and validate bundled Android ARM64 Node runtime
+        run: bash scripts/prepare-android-runtime.sh
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      - name: Compile Android Kotlin and process resources (does not assemble APK)
+        run: gradle --no-daemon :app:compileDebugKotlin :app:processDebugResources :app:checkDebugAarMetadata
