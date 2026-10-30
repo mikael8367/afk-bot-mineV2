@@ -29,31 +29,22 @@ async function loadVersions() {
   if(!select||!note) return;
   try {
     const catalog=await api("/api/versions");
-    const selected=select.value;
-    select.replaceChildren(new Option("Detectar automaticamente (recomendado)",""));
-    for(const edition of ["java","bedrock"]) {
+    const render=()=>{
+      const edition=$("#edition").value,entry=catalog[edition],previous=select.value;
+      select.replaceChildren(new Option("Detectar automaticamente (recomendado)",""));
       const group=document.createElement("optgroup");
       group.label=edition==="java"?"Java Edition":"Bedrock Edition";
-      for(const version of catalog[edition]?.versions||[]) {
-        group.append(new Option(version,version));
-      }
+      for(const version of entry?.versions||[]) group.append(new Option(version,version));
       select.append(group);
-    }
-    select.value=selected;
-    const updateNote=()=>{
-      const edition=$("#edition").value;
-      const entry=catalog[edition];
-      note.textContent=edition==="java"
-        ? "Java: "+(entry?.versions?.length||0)+" protocolos listados pelo motor. Versão mais recente nesta biblioteca: "+(entry?.latest||"indisponível")+"."
-        : "Bedrock: "+(entry?.versions?.length||0)+" protocolos listados pelo motor. Versão mais recente nesta biblioteca: "+(entry?.latest||"indisponível")+".";
+      if((entry?.versions||[]).includes(previous)) select.value=previous;
+      note.textContent=(edition==="java"?"Java":"Bedrock")+" · "+(entry?.versions?.length||0)+" versões/protocolos listados. Mais recente nesta biblioteca: "+(entry?.latest||"indisponível")+". A detecção automática tenta identificar o servidor.";
     };
-    $("#edition").addEventListener("change",updateNote);
-    updateNote();
+    $("#edition").addEventListener("change",render);
+    render();
   } catch(error) {
     note.textContent="Não foi possível carregar a lista de versões: "+error.message+". Tente recarregar o painel.";
   }
 }
-
 function readOptions() {
   return Object.fromEntries(Object.entries(OPTION_IDS).map(([key,selector])=>[key,$(selector).checked]));
 }
