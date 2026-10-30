@@ -1,12 +1,23 @@
 name: Build Android APK
 on:
-  # APK generation is intentionally manual; ordinary source commits never publish an APK.
+  # Build the APK only for this explicitly requested packaging branch or manually.
+  push:
+    branches:
+      - fix/android-runtime-packaging
+    paths:
+      - ".github/workflows/android-apk.yml"
+      - "app/**"
+      - "src/**"
+      - "public/**"
+      - "scripts/**"
+      - "package.json"
+      - "runtime/**"
   workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,10 +44,3 @@ jobs:
           name: AFK-Bot-Mine-V2-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
-      - name: Publish APK release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: apk-v1.0.${{ github.run_number }}
-          name: AFK Bot Mine V2 Android v1.0.${{ github.run_number }}
-          files: app/build/outputs/apk/debug/app-debug.apk
-          generate_release_notes: true
