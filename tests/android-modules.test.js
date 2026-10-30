@@ -9,15 +9,15 @@ test("Android preparation selects jsp-raknet for discovery and removes only nati
   const root=await fs.mkdtemp(path.join(os.tmpdir(),"afk-android-modules-"));
   try {
     const bedrockDir=path.join(root,"node_modules","bedrock-protocol","src");
-    const nativeDir=path.join(root,"node_modules","raknet-native","prebuilds","linux-x64");
+    const nativeDir=path.join(root,"node_modules","raknet-native","prebuilds","linux-x64");\n    const sampleDir=path.join(root,"node_modules","prismarine-nbt","sample");
     await fs.mkdir(bedrockDir,{recursive:true});
-    await fs.mkdir(nativeDir,{recursive:true});
+    await fs.mkdir(nativeDir,{recursive:true});\n    await fs.mkdir(sampleDir,{recursive:true});\n    await fs.writeFile(path.join(sampleDir,"bigtest.nbt"),"fixture");\n    await fs.writeFile(path.join(sampleDir,"bigtest.nbt.gz"),"fixture");
     await fs.writeFile(path.join(bedrockDir,"createClient.js"),"const { RakClient } = initRaknet('raknet-native')\n");
     await fs.writeFile(path.join(nativeDir,"raknet.node"),"native fixture");
     const result=await prepareAndroidModules(root);
     const source=await fs.readFile(path.join(bedrockDir,"createClient.js"),"utf8");
     assert.match(source,/initRaknet\('jsp-raknet'\)/);
-    assert.equal(result.removedNativeFiles,1);
+    assert.equal(result.removedNativeFiles,1);\n    await assert.rejects(fs.access(sampleDir));
     await assert.rejects(fs.access(path.join(nativeDir,"raknet.node")));
     const second=await prepareAndroidModules(root);
     assert.equal(second.removedNativeFiles,0);
