@@ -1,6 +1,11 @@
 package com.mikael.afkbotmine
 
 import android.app.Activity
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.webkit.JavascriptInterface
 import android.os.Bundle
 import android.graphics.Color
 import android.graphics.Typeface
@@ -21,6 +26,9 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         window.statusBarColor = Color.rgb(8, 17, 12)
         window.navigationBarColor = Color.rgb(8, 17, 12)
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 26061)
+        }
         showPanel()
     }
 
@@ -63,6 +71,7 @@ class MainActivity : Activity() {
         browser = WebView(this)
         browser.setBackgroundColor(Color.rgb(8, 17, 12))
         browser.settings.javaScriptEnabled = true
+        browser.addJavascriptInterface(BotBridge(), "AndroidBotBridge")
         browser.settings.domStorageEnabled = true
         browser.settings.databaseEnabled = true
         browser.settings.loadsImagesAutomatically = true
@@ -100,6 +109,22 @@ class MainActivity : Activity() {
         reload.setOnClickListener { browser.reload() }
         setContentView(root)
         browser.loadUrl(panelUrl)
+    }
+
+
+    private inner class BotBridge {
+        @JavascriptInterface
+        fun setBotActive(active: Boolean) {
+            runOnUiThread {
+                val intent = Intent(this@MainActivity, BotMonitorService::class.java)
+                if (active) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent)
+                    else startService(intent)
+                } else {
+                    stopService(intent)
+                }
+            }
+        }
     }
 
     private fun shape(color: Int, radius: Int): GradientDrawable =
