@@ -49,8 +49,12 @@ export class BotManager {
   }
   setOptions(input={}) {
     const s=this.session;if(!s) throw Error("Conecte o bot antes de alterar as opções.");
+    const wasAutoReconnect=s.options.autoReconnect;
     s.options=validateBotOptions(input,s.config.edition,s.options);
-    s.client?.setOptions?.(s.options);this.log("info","Configurações do bot atualizadas.");
+    s.client?.setOptions?.(s.options);
+    if(!s.options.autoReconnect&&s.timer){clearTimeout(s.timer);s.timer=null;}
+    if(s.options.autoReconnect&&!wasAutoReconnect&&s.state==="offline"&&!s.client)this.reconnect(s);
+    this.log("info","Configurações do bot atualizadas.");
     return {...s.options};
   }
   control(input={}) {
