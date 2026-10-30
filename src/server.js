@@ -26,6 +26,10 @@ app.use("/api",(q,r,next)=>{
 app.get("/api/status",(_q,r)=>r.json(manager.status()));
 app.get("/api/logs",(_q,r)=>r.json({logs:manager.getLogs()}));
 app.post("/api/connect",(q,r)=>{try{r.status(202).json(manager.connect(q.body));}catch(e){r.status(400).json({error:e.message});}});
+app.post("/api/options",(q,r)=>{try{r.json({options:manager.setOptions(q.body)});}catch(e){r.status(400).json({error:e.message});}});
+app.post("/api/control",(q,r)=>{try{r.json({ok:true,...manager.control(q.body)});}catch(e){r.status(400).json({error:e.message});}});
+app.post("/api/chat",(q,r)=>{try{r.json({ok:true,...manager.chat(q.body)});}catch(e){r.status(400).json({error:e.message});}});
+app.post("/api/follow",(q,r)=>{try{r.json({ok:true,...manager.follow(q.body)});}catch(e){r.status(400).json({error:e.message});}});
 app.post("/api/disconnect",(_q,r)=>{manager.disconnect();r.json({ok:true,status:manager.status()});});
 const server=app.listen(port,"0.0.0.0",()=>console.log("AFK Bot Mine V2 ativo na porta "+port));
 function shutdown(){manager.disconnect("Servidor encerrando.");server.close(()=>process.exit(0));}
