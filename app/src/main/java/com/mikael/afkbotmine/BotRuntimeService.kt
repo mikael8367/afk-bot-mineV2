@@ -100,6 +100,7 @@ class BotRuntimeService : Service() {
                     env["PORT"] = LOCAL_PORT.toString()
                     env["LOCAL_API_TOKEN"] = token
                     env["AUTO_RECONNECT"] = "true"
+                    env["BEDROCK_RAKNET_BACKEND"] = "jsp-raknet"
                     env["HOME"] = filesDir.absolutePath
                     env["TMPDIR"] = cacheDir.absolutePath
                     val currentLibraryPath = env["LD_LIBRARY_PATH"].orEmpty()
