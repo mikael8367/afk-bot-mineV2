@@ -3,6 +3,7 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 import {BotManager} from "./core/bot-manager.js";
 import {parseBoolean} from "./core/validation.js";
+import {getSupportedVersions} from "./core/versions.js";
 
 const app=express(),dir=path.dirname(fileURLToPath(import.meta.url)),port=Number(process.env.PORT||3000);
 const token=process.env.ADMIN_TOKEN||"",accessKey=process.env.ACCESS_KEY||"";
@@ -23,6 +24,7 @@ app.use("/api",(q,r,next)=>{
   if(!safeEqual(cookie,token)&&!safeEqual(sent,token))return r.status(401).json({error:"Acesso não autorizado. Abra seu link privado de acesso."});
   next();
 });
+app.get("/api/versions",(_q,r)=>r.json(getSupportedVersions()));
 app.get("/api/status",(_q,r)=>r.json(manager.status()));
 app.get("/api/logs",(_q,r)=>r.json({logs:manager.getLogs()}));
 app.post("/api/connect",(q,r)=>{try{r.status(202).json(manager.connect(q.body));}catch(e){r.status(400).json({error:e.message});}});
