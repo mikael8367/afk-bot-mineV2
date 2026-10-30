@@ -8,7 +8,6 @@ import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
-import androidx.core.app.NotificationCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -77,46 +76,19 @@ class BotMonitorService : Service() {
             this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        return NotificationCompat.Builder(this, channelId)
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, channelId)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
+        return builder
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .setContentTitle("AFK Bot Mine V2")
             .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText("$message\nO monitoramento continua em segundo plano."))
+            .setStyle(Notification.BigTextStyle().bigText("$message\\nO monitoramento continua em segundo plano."))
             .setContentIntent(openApp)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(Notification.CATEGORY_SERVICE)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .build()
-    }
-
-    private fun createChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId, "Bots ativos", NotificationManager.IMPORTANCE_LOW
-            ).apply { description = "Notificação persistente enquanto houver bot ativo." }
-            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
-        }
-    }
-
-    private fun stopMonitor() {
-        if (stopped) return
-        stopped = true
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf()
-    }
-
-    override fun onDestroy() {
-        stopped = true
-        executor.shutdownNow()
-        super.onDestroy()
-    }
-
-    override fun onBind(intent: Intent?): IBinder? = null
-
-    companion object {
-        const val ACTION_STOP = "com.mikael.afkbotmine.STOP_MONITOR"
-        private const val NOTIFICATION_ID = 26060
-        private const val PANEL_URL = "https://afk-bot-mine-v2.onrender.com"
-    }
-}
