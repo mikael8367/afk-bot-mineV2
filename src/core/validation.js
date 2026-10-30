@@ -1,3 +1,4 @@
+import {isSupportedVersion} from "./versions.js";
 const HOST=/^(?=.{1,253}$)[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$/;
 const CONTROL_STATES=new Set(["forward","back","left","right","jump","sprint","sneak"]);
 const OPTION_KEYS=["autoReconnect","autoRespawn","autoEat","autoEquipArmor","autoEquipShield"];
@@ -12,6 +13,7 @@ export function validateConnection(input={}) {
   if(!Number.isInteger(port)||port<1||port>65535) throw Error("Porta inválida (1–65535).");
   if(!/^[a-zA-Z0-9_]{3,16}$/.test(username)) throw Error("Nome deve ter 3–16 letras, números ou _.");
   if(version&&!/^[0-9A-Za-z._-]{1,32}$/.test(version)) throw Error("Versão inválida.");
+  if(version&&!isSupportedVersion(edition,version)) throw Error("Essa versão não está na lista de protocolos suportados pelo motor "+edition+". Escolha uma versão da lista ou use detecção automática.");
   return {edition,host,port,username,version,auth:input.auth==="microsoft"?"microsoft":"offline"};
 }
 export function parseBoolean(value,fallback=false) {
