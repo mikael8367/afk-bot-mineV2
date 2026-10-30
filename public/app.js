@@ -23,6 +23,37 @@ async function api(url,options={}) {
   if(!response.ok) throw Error(data.error||"HTTP "+response.status);
   return data;
 }
+
+async function loadVersions() {
+  const select=$("#version-select"),note=$("#version-support-note");
+  if(!select||!note) return;
+  try {
+    const catalog=await api("/api/versions");
+    const selected=select.value;
+    select.replaceChildren(new Option("Detectar automaticamente (recomendado)",""));
+    for(const edition of ["java","bedrock"]) {
+      const group=document.createElement("optgroup");
+      group.label=edition==="java"?"Java Edition":"Bedrock Edition";
+      for(const version of catalog[edition]?.versions||[]) {
+        group.append(new Option(version,version));
+      }
+      select.append(group);
+    }
+    select.value=selected;
+    const updateNote=()=>{
+      const edition=$("#edition").value;
+      const entry=catalog[edition];
+      note.textContent=edition==="java"
+        ? "Java: "+(entry?.versions?.length||0)+" protocolos listados pelo motor. Versão mais recente nesta biblioteca: "+(entry?.latest||"indisponível")+"."
+        : "Bedrock: "+(entry?.versions?.length||0)+" protocolos listados pelo motor. Versão mais recente nesta biblioteca: "+(entry?.latest||"indisponível")+".";
+    };
+    $("#edition").addEventListener("change",updateNote);
+    updateNote();
+  } catch(error) {
+    note.textContent="Não foi possível carregar a lista de versões: "+error.message+". Tente recarregar o painel.";
+  }
+}
+
 function readOptions() {
   return Object.fromEntries(Object.entries(OPTION_IDS).map(([key,selector])=>[key,$(selector).checked]));
 }
@@ -179,3 +210,4 @@ setInterval(()=>{
 },5000);
 applyCapabilities($("#edition").value);
 refreshStatus();
+loadVersions();
