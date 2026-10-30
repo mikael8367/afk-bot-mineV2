@@ -85,7 +85,7 @@ class MainActivity : Activity() {
             setHintTextColor(Color.rgb(104, 130, 111))
             setTextColor(Color.WHITE)
             textSize = 12f
-            singleLine = true
+            setSingleLine(true)
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI
             imeOptions = EditorInfo.IME_ACTION_DONE
             setPadding(dp(14), dp(13), dp(14), dp(13))
