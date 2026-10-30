@@ -47,4 +47,5 @@ cp "$ROOT_DIR/package.json" "$ASSET_DIR/package.json"
 (cd "$ASSET_DIR" && npm install --omit=dev --omit=optional --no-audit --no-fund)
 
 cp "$ROOT_DIR/runtime/THIRD_PARTY_NOTICES.md" "$ASSET_DIR/THIRD_PARTY_NOTICES.md"
+cp "$ROOT_DIR/runtime/UPSTREAM-LICENSE.txt" "$ASSET_DIR/UPSTREAM-LICENSE.txt"
 echo "Android ARM64 Node runtime and local server assets staged."
