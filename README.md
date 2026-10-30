@@ -9,11 +9,15 @@ Painel web mobile-first para gerenciar um bot Minecraft Java ou Bedrock em servi
 - Interface mobile com abas inferiores: Início, Bots, Logs e Ajustes.
 - API pública sem token; painel abre diretamente no navegador e no aplicativo.
 
-## Execução local
-Node.js 20 ou superior (22 recomendado). Execute npm install e npm start. O painel e a API ficam públicos, sem etapa de autenticação.
+## Execução no Android
+O aplicativo oferece dois motores: Render (remoto) e Dispositivo (Android ARM64). No modo Dispositivo, o APK inclui o runtime Node.js e as dependências do bot; um serviço Android em primeiro plano inicia o servidor em loopback (127.0.0.1:39391) e mantém o processo ativo. A API local exige um token aleatório por instalação, que não é exposto no painel.
+
+Para preparar o pacote Android, use Node.js 24+ no ambiente de build e execute scripts/prepare-android-runtime.sh antes de gradle :app:assembleDebug. O script verifica o SHA-256 do runtime ARM64 e prepara os assets do backend. O workflow de APK é manual e não é executado em cada commit.
+
+O modo Dispositivo exige Android ARM64 e internet para acessar os servidores Minecraft. O serviço usa uma notificação persistente e um wake lock renovado para reduzir pausas com a tela apagada. Restrições de bateria do fabricante ainda podem encerrar o processo; o comportamento deve ser validado no aparelho físico.
 
 ## Render
-Não é necessário configurar ADMIN_TOKEN ou ACCESS_KEY. O painel abre pela URL normal do serviço.
+Não é necessário configurar ADMIN_TOKEN ou ACCESS_KEY. O painel abre pela URL normal do serviço. A API remota permanece pública nesta versão; qualquer pessoa que conheça a URL poderá tentar controlar o bot.
 
 O plano gratuito pode suspender serviços sem tráfego e não garante funcionamento 24/7.
 
@@ -56,3 +60,11 @@ O formulário carrega a lista de protocolos suportados pelos motores instalados.
 - Versões não listadas são recusadas pela API para evitar uma tentativa com protocolo incompatível. Quando uma nova versão sair, atualizar o motor e a lista é necessário; a opção automática não adiciona suporte a protocolos ausentes.
 
 A lista Bedrock segue as versões anunciadas pelo pacote bedrock-protocol 3.60.1. O Java segue a lista dinâmica do minecraft-protocol instalado.
+
+
+## Preparação Android e testes
+- Build staging: scripts/prepare-android-runtime.sh
+- Testes Node.js: npm test
+- Build APK: workflow manual .github/workflows/android-apk.yml
+- O staging instala dependências JavaScript sem addons nativos opcionais. Isso evita empacotar binários Linux, mas não substitui o teste de Mineflayer e bedrock-protocol no Android ARM64.
+- O modo local só deve ser considerado validado após conectar e desconectar bots Java e Bedrock num aparelho Android físico, testar retomada em segundo plano e inspecionar logs e memória.
