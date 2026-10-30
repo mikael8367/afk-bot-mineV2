@@ -20,6 +20,7 @@ command -v unzip >/dev/null || { echo "unzip is required" >&2; exit 1; }
 command -v sha256sum >/dev/null || { echo "sha256sum is required" >&2; exit 1; }
 command -v npm >/dev/null || { echo "npm is required" >&2; exit 1; }
 command -v file >/dev/null || { echo "file is required" >&2; exit 1; }
+command -v readelf >/dev/null || { echo "readelf is required" >&2; exit 1; }
 
 curl --fail --location --retry 3 "$NODE_ARCHIVE_URL" -o "$TMP_DIR/node-runtime.zip"
 echo "$NODE_ARCHIVE_SHA256  $TMP_DIR/node-runtime.zip" | sha256sum --check -
@@ -36,6 +37,7 @@ JNI_DIR="$ROOT_DIR/app/src/main/jniLibs/arm64-v8a"
 mkdir -p "$JNI_DIR"
 install -m 755 "$NODE_BIN" "$JNI_DIR/libnode.so"
 file "$JNI_DIR/libnode.so" | grep -q "ELF 64-bit" || { echo "Unexpected Node runtime binary" >&2; exit 1; }
+readelf -h "$JNI_DIR/libnode.so" | grep -q "AArch64" || { echo "Node runtime is not compiled for ARM64/AArch64" >&2; exit 1; }
 
 PANEL_ASSET_DIR="$ROOT_DIR/app/src/main/assets/panel"
 rm -rf "$PANEL_ASSET_DIR"
