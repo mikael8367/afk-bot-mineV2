@@ -10,6 +10,7 @@
         android:allowBackup="false"
         android:label="AFK Bot Mine V2"
         android:usesCleartextTraffic="false"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:supportsRtl="true">
         <service
