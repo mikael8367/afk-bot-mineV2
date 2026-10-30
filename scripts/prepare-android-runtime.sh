@@ -41,14 +41,10 @@ mkdir -p "$ASSET_DIR"
 cp -R "$ROOT_DIR/src" "$ASSET_DIR/src"
 cp -R "$ROOT_DIR/public" "$ASSET_DIR/public"
 cp "$ROOT_DIR/package.json" "$ASSET_DIR/package.json"
-if [ -f "$ROOT_DIR/package-lock.json" ]; then
-  cp "$ROOT_DIR/package-lock.json" "$ASSET_DIR/package-lock.json"
-  (cd "$ASSET_DIR" && npm ci --omit=dev --ignore-scripts --no-audit --no-fund)
-else
-  echo "package-lock.json is required for reproducible runtime packaging" >&2
-  exit 1
-fi
+# Install JS dependencies on the CI host. Optional native addons are excluded:
+# Linux/x64 binaries must never be copied into an Android/arm64 APK. The pure-JS
+# protocol path must be verified separately on a physical Android device.
+(cd "$ASSET_DIR" && npm install --omit=dev --omit=optional --no-audit --no-fund)
 
 cp "$ROOT_DIR/runtime/THIRD_PARTY_NOTICES.md" "$ASSET_DIR/THIRD_PARTY_NOTICES.md"
-"$NODE_BIN" --version
 echo "Android ARM64 Node runtime and local server assets staged."
