@@ -14,14 +14,14 @@ test("Android preparation selects jsp-raknet, removes native prebuilds and exclu
     await fs.mkdir(bedrockDir,{recursive:true});
     await fs.mkdir(nativeDir,{recursive:true});
     await fs.mkdir(sampleDir,{recursive:true});
-    await fs.writeFile(path.join(bedrockDir,"createClient.js"),"const { RakClient } = initRaknet('raknet-native')\\n");
+    await fs.writeFile(path.join(bedrockDir,"createClient.js"),"const { RakClient } = initRaknet('raknet-native')\n");
     await fs.writeFile(path.join(nativeDir,"raknet.node"),"native fixture");
     await fs.writeFile(path.join(sampleDir,"bigtest.nbt"),"fixture");
     await fs.writeFile(path.join(sampleDir,"bigtest.nbt.gz"),"fixture");
 
     const result=await prepareAndroidModules(root);
     const source=await fs.readFile(path.join(bedrockDir,"createClient.js"),"utf8");
-    assert.match(source,/initRaknet\\('jsp-raknet'\\)/);
+    assert.match(source,/initRaknet\('jsp-raknet'\)/);
     assert.equal(result.removedNativeFiles,1);
     await assert.rejects(fs.access(path.join(nativeDir,"raknet.node")));
     await assert.rejects(fs.access(sampleDir));
@@ -38,7 +38,7 @@ test("Android preparation fails closed if the installed Bedrock source changes u
   try {
     const bedrockDir=path.join(root,"node_modules","bedrock-protocol","src");
     await fs.mkdir(bedrockDir,{recursive:true});
-    await fs.writeFile(path.join(bedrockDir,"createClient.js"),"// unknown implementation\\n");
+    await fs.writeFile(path.join(bedrockDir,"createClient.js"),"// unknown implementation\n");
     await assert.rejects(prepareAndroidModules(root),/unknown RakNet discovery implementation/);
   } finally {
     await fs.rm(root,{recursive:true,force:true});
