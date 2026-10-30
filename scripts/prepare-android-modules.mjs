@@ -29,6 +29,11 @@ export async function prepareAndroidModules(rootDirectory) {
     throw new Error("bedrock-protocol createClient.js has an unknown RakNet discovery implementation; refusing an unsafe Android bundle.");
   }
 
+  // Android asset merging treats paired .nbt/.nbt.gz fixtures as duplicate resources.
+  // These package test fixtures are never used at runtime.
+  const prismarineSamples=path.join(rootDirectory,"node_modules","prismarine-nbt","sample");
+  await fs.rm(prismarineSamples,{recursive:true,force:true});
+
   const nativeDirectory=path.join(rootDirectory,"node_modules","raknet-native");
   const nativeFiles=await findNativeFiles(nativeDirectory);
   for(const file of nativeFiles) await fs.unlink(file);

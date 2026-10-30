@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/android-local-runtime
+      - fix/**
     paths:
       - "app/**"
       - "src/**"

@@ -335,7 +335,7 @@ class BotRuntimeService : Service() {
         const val LOCAL_PORT = 39391
         private const val LOOPBACK_HOST = "127.0.0.1"
         private const val NOTIFICATION_ID = 26062
-        private const val BUNDLE_VERSION = "1.1.0"
+        private const val BUNDLE_VERSION = "1.1.1"
         private const val PREFS = "afk_bot_runtime"
         private const val TOKEN_KEY = "local_api_token"
         private const val MAX_LOG_BYTES = 1024L * 1024L
