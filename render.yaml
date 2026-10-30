@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: afk-bot-mine-v2
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: AUTO_RECONNECT
+        value: "true"
+      - key: RECONNECT_DELAY_MS
+        value: "10000"
