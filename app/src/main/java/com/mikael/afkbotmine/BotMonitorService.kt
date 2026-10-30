@@ -50,6 +50,10 @@ class BotMonitorService : Service() {
             val state = data.optString("state", "offline")
             val online = data.optBoolean("connected", state == "online")
             val active = online || state == "connecting"
+            if (!active && !data.has("config") || (!active && data.isNull("config"))) {
+                stopMonitor()
+                return
+            }
             if (active) {
                 offlineChecks = 0
                 val label = if (online) "Bot conectado" else "Bot reconectando"
@@ -60,12 +64,12 @@ class BotMonitorService : Service() {
                     .notify(NOTIFICATION_ID, notification("$label · $server"))
             } else {
                 offlineChecks++
-                if (offlineChecks >= 3) stopMonitor()
+                if (offlineChecks >= 12) stopMonitor()
             }
         } catch (_: Exception) {
             // Falhas temporárias de rede não encerram a notificação imediatamente.
             offlineChecks++
-            if (offlineChecks >= 6) stopMonitor()
+            if (offlineChecks >= 12) stopMonitor()
         } finally {
             connection?.disconnect()
         }
