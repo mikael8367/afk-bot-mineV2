@@ -32,26 +32,29 @@ function tab(name) {
 document.querySelectorAll("[data-tab]").forEach(button=>button.addEventListener("click",()=>tab(button.dataset.tab)));
 document.querySelectorAll("[data-go]").forEach(button=>button.addEventListener("click",()=>tab(button.dataset.go)));
 
+function nativeApiRequest(methodName,url,options={}) {
+  if(!window.AndroidBotBridge?.[methodName]) throw Error("Ponte Android indisponível.");
+  const method=options.method||"GET";
+  const body=typeof options.body==="string"?options.body:"";
+  return new Promise((resolve,reject)=>{
+    const id="native-"+(++localApiSequence);
+    const timeout=setTimeout(()=>{
+      pendingLocalApi.delete(id);
+      reject(Error("O serviço não respondeu. Verifique a conexão e tente novamente."));
+    },20000);
+    pendingLocalApi.set(id,{resolve,reject,timeout});
+    try { window.AndroidBotBridge[methodName](url,method,body,id); }
+    catch(error) {
+      clearTimeout(timeout);
+      pendingLocalApi.delete(id);
+      reject(Error(error?.message||"Falha ao chamar o serviço Android."));
+    }
+  });
+}
+
 async function api(url,options={}) {
-  if(runtimeMode==="device") {
-    if(!window.AndroidBotBridge?.requestLocalApi) throw Error("O modo Dispositivo só funciona dentro do aplicativo Android.");
-    const method=options.method||"GET";
-    const body=typeof options.body==="string"?options.body:"";
-    return await new Promise((resolve,reject)=>{
-      const id="local-"+(++localApiSequence);
-      const timeout=setTimeout(()=>{
-        pendingLocalApi.delete(id);
-        reject(Error("O motor local não respondeu. Confira se o serviço Android está ativo."));
-      },12000);
-      pendingLocalApi.set(id,{resolve,reject,timeout});
-      try { window.AndroidBotBridge.requestLocalApi(url,method,body,id); }
-      catch(error) {
-        clearTimeout(timeout);
-        pendingLocalApi.delete(id);
-        reject(Error(error?.message||"Falha ao chamar o motor local."));
-      }
-    });
-  }
+  if(runtimeMode==="device") return nativeApiRequest("requestLocalApi",url,options);
+  if(window.AndroidBotBridge?.requestRenderApi) return nativeApiRequest("requestRenderApi",url,options);
   const response=await fetch(url,{...options,credentials:"same-origin",headers:{"Content-Type":"application/json",...(options.headers||{})}});
   const data=await response.json().catch(()=>({}));
   if(!response.ok) throw Error(data.error||"HTTP "+response.status);
